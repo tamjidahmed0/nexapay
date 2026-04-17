@@ -6,13 +6,19 @@ import { MessagePattern, Payload } from '@nestjs/microservices';
 export class TransactionController {
     constructor(
         private readonly transactionService: TransactionService
-    ){}
+    ) { }
 
 
 
     @MessagePattern('create-internal-transfer')
-    async createInternalTransfer(@Payload() dto ){
+    async createInternalTransfer(@Payload() dto) {
         return this.transactionService.createInternalTransfer(dto)
+    }
+
+    @MessagePattern('get-user-transactions')
+    async getUserTransactions(@Payload() dto) {
+        const { userId, cursor, limit } = dto
+        return this.transactionService.getUserTransactions({ userId, cursor, limit })
     }
 
 

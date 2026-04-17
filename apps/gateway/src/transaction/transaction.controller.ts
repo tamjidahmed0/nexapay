@@ -1,4 +1,4 @@
-import { Body, Controller, Inject, Post } from '@nestjs/common';
+import { Body, Controller, DefaultValuePipe, Get, Inject, Param, ParseIntPipe, ParseUUIDPipe, Post, Query } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { MICROSERVICE } from 'src/constants/constants';
 import { CreateInternalTransferDto } from './dto/create-internal-transfer';
@@ -15,6 +15,19 @@ export class TransactionController {
     @Post('internal')
     async createInternalTransaction(@Body() dto: CreateInternalTransferDto) {
         return this.paymentClient.send('create-internal-transfer', dto)
+    }
+
+
+    @Get('user/:userId')
+    getUserTransactions(
+        @Param('userId', ParseUUIDPipe) userId: string,
+        @Query('cursor') cursor?: string,
+        @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit?: number,
+    ) {
+
+        return this.paymentClient.send('get-user-transactions', {userId, cursor, limit})
+
+        
     }
 
 

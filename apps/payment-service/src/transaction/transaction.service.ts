@@ -27,14 +27,14 @@ export class TransactionService {
             dto,
         );
 
-        
+
 
         // Replay — return cached response, no processing
         if (!idempotencyResult.isNew) {
             return idempotencyResult.cachedResponse;
         }
 
-     
+
 
         try {
             // Step 2: Validate wallets
@@ -119,7 +119,7 @@ export class TransactionService {
             });
 
             const response = this.formatTransaction(completed);
-                    console.log(response)
+            console.log(response)
 
             // Step 5: Cache response for future replays
             await this.idempotency.markCompleted(
@@ -129,7 +129,7 @@ export class TransactionService {
                 201,
             );
 
-    
+
 
             return response;
         } catch (err: any) {
@@ -137,6 +137,34 @@ export class TransactionService {
             throw err;
         }
     }
+
+
+
+    async getUserTransactions({ userId, cursor, limit = 20 }) {
+        const transactions = await this.prisma.transaction.findMany({
+            where: {
+                OR: [{ senderUserId: userId }, { recipientUserId: userId }],
+            },
+            orderBy: { createdAt: 'desc' },
+            take: limit + 1,
+            ...(cursor && {
+                cursor: { id: cursor },
+                skip: 1,
+            }),
+        });
+
+        const hasNextPage = transactions.length > limit;
+        const items = hasNextPage ? transactions.slice(0, limit) : transactions;
+
+        return {
+            items: items.map(this.formatTransaction),
+            nextCursor: hasNextPage ? items[items.length - 1].id : null,
+            hasNextPage,
+        };
+    }
+
+
+
 
 
 
