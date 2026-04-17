@@ -164,6 +164,23 @@ export class TransactionService {
     }
 
 
+    async getTransaction(transactionId: string) {
+        const transaction = await this.prisma.transaction.findUnique({
+            where: { id: transactionId },
+        });
+
+        if (!transaction) {
+            throw new RpcException({
+                statusCode: 400,
+                error: 'TRANSACTION_NOT_FOUND',
+                message: `Transaction ${transactionId} not found.`,
+            });
+        }
+
+        return this.formatTransaction(transaction);
+    }
+
+
 
 
 

@@ -18,6 +18,14 @@ export class TransactionController {
     }
 
 
+
+
+    @Get(':id')
+    getTransaction(@Param('id', ParseUUIDPipe) id: string) {
+        return this.paymentClient.send('get-user-transaction', id)
+    }
+
+
     @Get('user/:userId')
     getUserTransactions(
         @Param('userId', ParseUUIDPipe) userId: string,
@@ -25,9 +33,9 @@ export class TransactionController {
         @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit?: number,
     ) {
 
-        return this.paymentClient.send('get-user-transactions', {userId, cursor, limit})
+        return this.paymentClient.send('get-user-transactions', { userId, cursor, limit })
 
-        
+
     }
 
 

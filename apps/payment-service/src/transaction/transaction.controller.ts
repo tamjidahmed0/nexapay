@@ -21,5 +21,10 @@ export class TransactionController {
         return this.transactionService.getUserTransactions({ userId, cursor, limit })
     }
 
+    @MessagePattern('get-user-transaction')
+    async getUserTransaction(@Payload() transactionId) {
+        return this.transactionService.getTransaction(transactionId)
+    }
+
 
 }
