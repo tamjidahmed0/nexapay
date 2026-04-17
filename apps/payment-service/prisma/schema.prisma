@@ -1,0 +1,248 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Wallet {
+  id                   String        @id @default(uuid())
+  userId               String
+  currency             String
+  balance              Decimal       @default(0) @db.Decimal(20, 8)
+  ledgerAccountCode    String        @unique
+  isActive             Boolean       @default(true)
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+  receivedTransactions Transaction[] @relation("RecipientWallet")
+  sentTransactions     Transaction[] @relation("SenderWallet")
+
+  @@unique([userId, currency])
+  @@index([userId])
+}
+
+model IdempotencyKey {
+  id            String            @id @default(uuid())
+  key           String            @unique
+  clientId      String
+  payloadHash   String
+  status        IdempotencyStatus @default(PROCESSING)
+  responseBody  Json?
+  responseCode  Int?
+  transactionId String?
+  expiresAt     DateTime
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  transaction   Transaction?      @relation(fields: [transactionId], references: [id])
+
+  @@index([key])
+  @@index([expiresAt])
+}
+
+model Transaction {
+  id                String            @id @default(uuid())
+  type              TransactionType
+  status            TransactionStatus @default(PENDING)
+  senderWalletId    String?
+  senderUserId      String?
+  recipientWalletId String?
+  recipientUserId   String?
+  amount            Decimal           @db.Decimal(20, 8)
+  currency          String
+  fxQuoteId         String?           @unique
+  fxRate            Decimal?          @db.Decimal(20, 8)
+  fromCurrency      String?
+  toCurrency        String?
+  toAmount          Decimal?          @db.Decimal(20, 8)
+  payrollJobId      String?
+  failureReason     String?
+  metadata          Json?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  completedAt       DateTime?
+  idempotencyKeys   IdempotencyKey[]
+
+  payrollDisbursement PayrollDisbursement?
+  fxQuote             FXQuote?             @relation(fields: [fxQuoteId], references: [id])
+  payrollJob          PayrollJob?          @relation(fields: [payrollJobId], references: [id])
+  recipientWallet     Wallet?              @relation("RecipientWallet", fields: [recipientWalletId], references: [id])
+  senderWallet        Wallet?              @relation("SenderWallet", fields: [senderWalletId], references: [id])
+
+  @@index([senderUserId])
+  @@index([recipientUserId])
+  @@index([status])
+  @@index([payrollJobId])
+}
+
+model LedgerAccount {
+  id        String        @id @default(uuid())
+  code      String        @unique
+  type      AccountType
+  currency  String
+  createdAt DateTime      @default(now())
+  entries   LedgerEntry[]
+
+  @@index([code])
+  @@index([currency])
+}
+
+model LedgerEntry {
+  id            String        @id @default(uuid())
+  transactionId String
+  accountId     String
+  entryType     EntryType
+  amount        Decimal       @db.Decimal(20, 8)
+  currency      String
+  fxRate        Decimal?      @db.Decimal(20, 8)
+  description   String?
+  sequence      BigInt        @default(autoincrement())
+  previousHash  String?
+  hash          String        @unique
+  createdAt     DateTime      @default(now())
+  account       LedgerAccount @relation(fields: [accountId], references: [id])
+
+  @@index([transactionId])
+  @@index([accountId])
+  @@index([sequence])
+  @@index([currency])
+}
+
+model FXQuote {
+  id           String       @id @default(uuid())
+  requestedBy  String
+  fromCurrency String
+  toCurrency   String
+  fromAmount   Decimal      @db.Decimal(20, 8)
+  toAmount     Decimal      @db.Decimal(20, 8)
+  rate         Decimal      @db.Decimal(20, 8)
+  provider     String
+  status       QuoteStatus  @default(ACTIVE)
+  expiresAt    DateTime
+  usedAt       DateTime?
+  createdAt    DateTime     @default(now())
+  transaction  Transaction?
+
+  @@index([requestedBy])
+  @@index([status, expiresAt])
+}
+
+model FXRateCache {
+  id        String   @id @default(uuid())
+  pair      String   @unique
+  rate      Decimal  @db.Decimal(20, 8)
+  provider  String
+  fetchedAt DateTime
+  expiresAt DateTime
+
+  @@index([pair])
+}
+
+model PayrollJob {
+  id               String                @id @default(uuid())
+  employerId       String
+  employerWalletId String
+  idempotencyKey   String                @unique
+  status           PayrollStatus         @default(PENDING)
+  totalAmount      Decimal               @db.Decimal(20, 8)
+  currency         String
+  totalCount       Int
+  processedCount   Int                   @default(0)
+  failedCount      Int                   @default(0)
+  checkpointIndex  Int                   @default(-1)
+  metadata         Json?
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+  completedAt      DateTime?
+  disbursements    PayrollDisbursement[]
+  transactions     Transaction[]
+
+  @@index([employerId, status])
+  @@index([status])
+}
+
+model PayrollDisbursement {
+  id                String             @id @default(uuid())
+  jobId             String
+  employeeId        String
+  recipientWalletId String
+  amount            Decimal            @db.Decimal(20, 8)
+  currency          String
+  index             Int
+  status            DisbursementStatus @default(PENDING)
+  transactionId     String?            @unique
+  idempotencyKey    String             @unique
+  failureReason     String?
+  retryCount        Int                @default(0)
+  processedAt       DateTime?
+  createdAt         DateTime           @default(now())
+  job               PayrollJob         @relation(fields: [jobId], references: [id])
+  transaction       Transaction?       @relation(fields: [transactionId], references: [id])
+
+  @@unique([jobId, index])
+  @@index([jobId])
+  @@index([jobId, index])
+  @@index([status])
+}
+
+enum IdempotencyStatus {
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum TransactionType {
+  INTERNAL_TRANSFER
+  INTERNATIONAL_TRANSFER
+  PAYROLL_DISBURSEMENT
+  FEE_COLLECTION
+}
+
+enum TransactionStatus {
+  PENDING
+  DEBIT_COMPLETE
+  COMPLETED
+  FAILED
+  REVERSED
+}
+
+enum AccountType {
+  ASSET
+  LIABILITY
+  EQUITY
+  REVENUE
+  EXPENSE
+}
+
+enum EntryType {
+  DEBIT
+  CREDIT
+}
+
+enum QuoteStatus {
+  ACTIVE
+  USED
+  EXPIRED
+}
+
+enum PayrollStatus {
+  PENDING
+  PROCESSING
+  PARTIALLY_COMPLETE
+  COMPLETED
+  FAILED
+}
+
+enum DisbursementStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
