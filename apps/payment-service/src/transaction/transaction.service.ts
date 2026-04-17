@@ -27,15 +27,14 @@ export class TransactionService {
             dto,
         );
 
+        
+
         // Replay — return cached response, no processing
-        // if (!idempotencyResult.isNew) {
-        //     this.logger.log({
-        //         requestId,
-        //         event: 'transaction.replay',
-        //         key: dto.idempotencyKey,
-        //     });
-        //     return idempotencyResult.cachedResponse;
-        // }
+        if (!idempotencyResult.isNew) {
+            return idempotencyResult.cachedResponse;
+        }
+
+     
 
         try {
             // Step 2: Validate wallets
@@ -120,28 +119,19 @@ export class TransactionService {
             });
 
             const response = this.formatTransaction(completed);
+                    console.log(response)
 
-            return response
+            // Step 5: Cache response for future replays
+            await this.idempotency.markCompleted(
+                dto.idempotencyKey,
+                transaction.id,
+                response,
+                201,
+            );
 
-            // Step 4: Execute saga
-            // await this.saga.execute(transaction.id);
+    
 
-            // // Fetch final state
-            // const completed = await this.prisma.transaction.findUniqueOrThrow({
-            //     where: { id: transaction.id },
-            // });
-
-            // const response = this.formatTransaction(completed);
-
-            // // Step 5: Cache response for future replays
-            // await this.idempotency.markCompleted(
-            //     dto.idempotencyKey,
-            //     transaction.id,
-            //     response,
-            //     201,
-            // );
-
-            // return response;
+            return response;
         } catch (err: any) {
             await this.idempotency.markFailed(dto.idempotencyKey, err.message);
             throw err;

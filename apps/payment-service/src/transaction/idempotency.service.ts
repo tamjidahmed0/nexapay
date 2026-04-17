@@ -1,11 +1,10 @@
 import {
     Injectable,
-    ConflictException,
-    BadRequestException,
     Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { createHash } from 'crypto';
+import { RpcException } from '@nestjs/microservices';
 
 export interface IdempotencyResult {
     isNew: boolean;
@@ -80,7 +79,8 @@ export class IdempotencyService {
 
             // Scenario E: payload mismatch
             if (existing.payloadHash !== payloadHash) {
-                throw new BadRequestException({
+                throw new RpcException({
+                    statusCode: 400,
                     error: 'IDEMPOTENCY_PAYLOAD_MISMATCH',
                     message: `Idempotency key '${key}' was already used with a different request payload.`,
                 });
@@ -88,7 +88,8 @@ export class IdempotencyService {
 
             // Scenario B: in-flight — another request is processing right now
             if (existing.status === 'PROCESSING') {
-                throw new ConflictException({
+                throw new RpcException({
+                    statusCode: 409,
                     error: 'IDEMPOTENCY_IN_PROGRESS',
                     message: `A request with key '${key}' is already being processed. Retry after completion.`,
                 });

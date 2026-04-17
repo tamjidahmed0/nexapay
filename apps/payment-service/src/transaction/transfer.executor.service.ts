@@ -2,13 +2,15 @@ import { Injectable } from "@nestjs/common";
 import { RpcException } from "@nestjs/microservices";
 import { PrismaService } from "src/prisma/prisma.service";
 import { FeeService } from "./fee.service";
+import { LedgerService } from "./ledger.service";
 
 @Injectable()
 export class TransferExecutor {
 
     constructor(
         private readonly prisma: PrismaService,
-        private readonly feeService: FeeService
+        private readonly feeService: FeeService,
+        private readonly ledgerService: LedgerService
     ) { }
 
 
@@ -43,7 +45,7 @@ export class TransferExecutor {
                 }
 
                 // Step 3: Fee calculation
-                const txType = transaction.type === 'INTERNATIONAL_TRANSFER' ? 'INTERNATIONAL': transaction.type === 'PAYROLL_DISBURSEMENT' ? 'PAYROLL': 'INTERNAL';
+                const txType = transaction.type === 'INTERNATIONAL_TRANSFER' ? 'INTERNATIONAL' : transaction.type === 'PAYROLL_DISBURSEMENT' ? 'PAYROLL' : 'INTERNAL';
 
                 const transferAmount = parseFloat(transaction.amount.toString());
                 const fee = this.feeService.calculateFee(txType, transferAmount, transaction.currency);
@@ -77,7 +79,7 @@ export class TransferExecutor {
                 const existingMeta = typeof transaction.metadata === 'object' && transaction.metadata !== null
                     ? transaction.metadata : {};
 
-                await tx.transaction.update({
+                const updatedTx = await tx.transaction.update({
                     where: { id: transactionId },
                     data: {
                         status: 'COMPLETED',
@@ -92,6 +94,9 @@ export class TransferExecutor {
                     },
                 });
 
+
+                await this.ledgerService.writeLedgerEntries(tx, updatedTx)
+
             },
             {
                 isolationLevel: 'Serializable',
@@ -101,7 +106,6 @@ export class TransferExecutor {
 
 
     }
-
 
 
 
