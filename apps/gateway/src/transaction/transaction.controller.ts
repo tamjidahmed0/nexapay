@@ -2,6 +2,7 @@ import { Body, Controller, DefaultValuePipe, Get, Inject, Param, ParseIntPipe, P
 import { ClientProxy } from '@nestjs/microservices';
 import { MICROSERVICE } from 'src/constants/constants';
 import { CreateInternalTransferDto } from './dto/create-internal-transfer';
+import { CreateInternationalTransferDto } from './dto/international-transfer';
 
 @Controller('transaction')
 export class TransactionController {
@@ -17,7 +18,13 @@ export class TransactionController {
         return this.paymentClient.send('create-internal-transfer', dto)
     }
 
+    @Post('international')
+    createInternational(
+        @Body() dto: CreateInternationalTransferDto,
+    ) {
 
+        return this.paymentClient.send('create-international-transfer', dto)
+    }
 
 
     @Get(':id')

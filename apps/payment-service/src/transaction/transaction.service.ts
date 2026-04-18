@@ -4,6 +4,8 @@ import { CreateInternalTransferPayload } from './interface/CreateInternalTransfe
 import { PrismaService } from 'src/prisma/prisma.service';
 import { RpcException } from '@nestjs/microservices';
 import { TransferExecutor } from './transfer.executor.service';
+import { CreateInternationalTransfer } from './interface/international-transfer';
+import { stat } from 'fs';
 
 @Injectable()
 export class TransactionService {
@@ -137,6 +139,180 @@ export class TransactionService {
             throw err;
         }
     }
+
+
+
+
+
+
+
+    async createInternationalTransfer(
+        dto: CreateInternationalTransfer,
+    ) {
+        const idempotencyResult = await this.idempotency.acquireOrReplay(
+            dto.idempotencyKey,
+            dto.senderUserId,
+            dto,
+        );
+
+        if (!idempotencyResult.isNew) {
+            return idempotencyResult.cachedResponse;
+        }
+
+        try {
+            // Step 2: Consume FX quote atomically
+
+            const now = new Date();
+            const consumeResult = await this.prisma.fXQuote.updateMany({
+                where: {
+                    id: dto.fxQuoteId,
+                    status: 'ACTIVE',
+                    expiresAt: { gt: now },
+                },
+                data: {
+                    status: 'USED',
+                    usedAt: new Date(),
+                },
+            });
+
+            if (consumeResult.count === 0) {
+                // Zero rows updated — quote expired, already used, or not found
+                const quote = await this.prisma.fXQuote.findUnique({
+                    where: { id: dto.fxQuoteId },
+                });
+
+                if (!quote) {
+                    throw new RpcException({
+                        statusCode: 404,
+                        error: 'FX_QUOTE_NOT_FOUND',
+                        message: 'FX quote not found.',
+                    });
+                }
+                if (quote.status === 'USED') {
+                    throw new RpcException({
+                        statusCode: 400,
+                        error: 'FX_QUOTE_ALREADY_USED',
+                        message: 'This FX quote has already been used for another transfer.',
+                    });
+                }
+                // status=ACTIVE but expiresAt passed, or status=EXPIRED
+                throw new RpcException({
+                    statusCode: 400,
+                    error: 'FX_QUOTE_EXPIRED',
+                    message: 'FX quote has expired. Request a new quote and retry.',
+                    expiredAt: quote.expiresAt,
+                });
+            }
+
+            // Fetch the consumed quote for rate details
+            const quote = await this.prisma.fXQuote.findUniqueOrThrow({
+                where: { id: dto.fxQuoteId },
+            });
+
+            // Validate currency alignment with the quote
+            if (quote.fromCurrency !== dto.fromCurrency) {
+                throw new RpcException({ statusCode: 400, error: 'QUOTE_CURRENCY_MISMATCH' });
+            }
+            if (quote.toCurrency !== dto.toCurrency) {
+                throw new RpcException({ statusCode: 400, error: 'QUOTE_CURRENCY_MISMATCH' });
+            }
+            if (parseFloat(quote.fromAmount.toString()) !== dto.amount) {
+                throw new RpcException({
+                    statusCode: 400,
+                    error: 'QUOTE_AMOUNT_MISMATCH',
+                    message: 'Transfer amount does not match the quoted amount.',
+                    quotedAmount: quote.fromAmount.toString(),
+                    requestedAmount: dto.amount,
+                });
+            }
+
+            // Step 3: Validate wallets
+            const [senderWallet, recipientWallet] = await Promise.all([
+                this.prisma.wallet.findUnique({ where: { id: dto.senderWalletId } }),
+                this.prisma.wallet.findUnique({ where: { id: dto.recipientWalletId } }),
+            ]);
+
+
+
+            if (!senderWallet) {
+                throw new RpcException({
+                    statusCode: 404,
+                    error: 'SENDER_WALLET_NOT_FOUND',
+                    message: 'Sender wallet not found',
+                });
+            }
+
+            if (!recipientWallet) {
+                throw new RpcException({
+                    statusCode: 404,
+                    error: 'RECIPIENT_WALLET_NOT_FOUND',
+                    message: 'Recipient wallet not found',
+                });
+            }
+
+            if (senderWallet.currency !== dto.fromCurrency) {
+                throw new RpcException({
+                    statusCode: 400,
+                    error: 'SENDER_WALLET_CURRENCY_MISMATCH',
+                    message: 'Sender wallet currency does not match the requested fromCurrency',
+                });
+            }
+
+            if (recipientWallet.currency !== dto.toCurrency) {
+                throw new RpcException({
+                    statusCode: 400,
+                    error: 'RECIPIENT_WALLET_CURRENCY_MISMATCH',
+                    message: 'Recipient wallet currency does not match the requested toCurrency',
+                });
+            }
+
+            // Step 4: Create transaction with locked rate recorded
+            const transaction = await this.prisma.transaction.create({
+                data: {
+                    type: 'INTERNATIONAL_TRANSFER',
+                    status: 'PENDING',
+                    senderWalletId: dto.senderWalletId,
+                    senderUserId: dto.senderUserId,
+                    recipientWalletId: dto.recipientWalletId,
+                    recipientUserId: dto.recipientUserId,
+                    amount: dto.amount,
+                    currency: dto.fromCurrency,
+                    fxQuoteId: quote.id,
+                    fxRate: quote.rate,       // exact locked rate — on ledger entry too
+                    fromCurrency: dto.fromCurrency,
+                    toCurrency: dto.toCurrency,
+                    toAmount: quote.toAmount, // recipient gets exactly this
+                    metadata: dto.note ? { note: dto.note } : undefined,
+                },
+            });
+
+
+
+            // Step 5: Execute transaction executor to perform balance updates and finalize the transaction
+            await this.transferExecutor.execute(transaction.id);
+
+            const completed = await this.prisma.transaction.findUniqueOrThrow({
+                where: { id: transaction.id },
+            });
+
+            const response = this.formatTransaction(completed);
+
+            await this.idempotency.markCompleted(
+                dto.idempotencyKey,
+                transaction.id,
+                response,
+                201,
+            );
+
+            return response;
+        } catch (err: any) {
+            await this.idempotency.markFailed(dto.idempotencyKey, err.message);
+            throw err;
+        }
+    }
+
+
+
 
 
 
