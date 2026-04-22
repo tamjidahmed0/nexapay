@@ -26,6 +26,16 @@ export class WalletController {
         return this.paymentClient.send('get-wallet', walletId)
     }
 
+    @Get('get-balances')
+    async getBalances(@Headers('user-id') userId) {
+        return this.paymentClient.send('get-balances', userId)
+    }
+
+    @Get('get-balance')
+    async getBalance(@Headers('wallet-id') walletId) {
+        return this.paymentClient.send('get-balance', { walletId })
+    }
+
 
 
 }

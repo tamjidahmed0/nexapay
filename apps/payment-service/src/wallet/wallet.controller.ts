@@ -25,4 +25,14 @@ export class WalletController {
         return this.wallet.getWallet(walletId)
     }
 
+    @MessagePattern('get-balances')
+    async getBalances(@Payload() userId) {
+        return this.wallet.getUserBalances(userId)
+    }
+
+    @MessagePattern('get-balance')
+    async getBalance(@Payload() { walletId }) {
+        return this.wallet.getBalance(walletId)
+    }
+
 }

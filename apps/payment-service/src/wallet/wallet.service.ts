@@ -88,6 +88,56 @@ export class WalletService {
     }
 
 
+    async getUserBalances(userId: string) {
+        const wallets = await this.prisma.wallet.findMany({
+            where: { userId, isActive: true },
+            select: {
+                id: true,
+                currency: true,
+                balance: true,
+                updatedAt: true,
+            },
+        });
+
+        return wallets.map((w) => ({
+            walletId: w.id,
+            currency: w.currency,
+            balance: w.balance.toString(),
+            asOf: w.updatedAt,
+        }));
+
+    }
+
+
+    async getBalance(walletId: string) {
+        const wallet = await this.prisma.wallet.findUnique({
+            where: { id: walletId },
+            select: {
+                id: true,
+                userId: true,
+                currency: true,
+                balance: true,
+                isActive: true,
+                updatedAt: true,
+            },
+        });
+
+        if (!wallet) {
+            throw new RpcException({ statusCode: 404, error: 'WALLET_NOT_FOUND', message: `Wallet ${walletId} not found.` });
+        }
+
+        return {
+            walletId: wallet.id,
+            userId: wallet.userId,
+            currency: wallet.currency,
+            balance: wallet.balance.toString(),
+            isActive: wallet.isActive,
+            asOf: wallet.updatedAt,
+        };
+    }
+
+
+
 
 
     private formatWallet(wallet: any) {
