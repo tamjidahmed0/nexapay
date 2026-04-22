@@ -4,6 +4,7 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
 import { MICROSERVICE } from './constants/constants';
 import { WalletController } from './wallet/wallet.controller';
 import { TransactionController } from './transaction/transaction.controller';
+import { FxController } from './fx/fx.controller';
 
 @Module({
   imports: [
@@ -24,6 +25,6 @@ import { TransactionController } from './transaction/transaction.controller';
       }
     ])
   ],
-  controllers: [UserController, WalletController, TransactionController],
+  controllers: [UserController, WalletController, TransactionController, FxController],
 })
 export class AppModule { }

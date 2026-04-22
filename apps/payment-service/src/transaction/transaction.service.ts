@@ -121,7 +121,6 @@ export class TransactionService {
             });
 
             const response = this.formatTransaction(completed);
-            console.log(response)
 
             // Step 5: Cache response for future replays
             await this.idempotency.markCompleted(
@@ -143,9 +142,6 @@ export class TransactionService {
 
 
 
-
-
-
     async createInternationalTransfer(
         dto: CreateInternationalTransfer,
     ) {
@@ -160,6 +156,32 @@ export class TransactionService {
         }
 
         try {
+
+
+            // Fetch the consumed quote for rate details
+            const quote = await this.prisma.fXQuote.findUniqueOrThrow({
+                where: { id: dto.fxQuoteId },
+            });
+
+            // Validate currency alignment with the quote
+            if (quote.fromCurrency !== dto.fromCurrency) {
+                throw new RpcException({ statusCode: 400, error: 'QUOTE_CURRENCY_MISMATCH' });
+            }
+            if (quote.toCurrency !== dto.toCurrency) {
+                throw new RpcException({ statusCode: 400, error: 'QUOTE_CURRENCY_MISMATCH' });
+            }
+            if (parseFloat(quote.fromAmount.toString()) !== dto.amount) {
+                throw new RpcException({
+                    statusCode: 400,
+                    error: 'QUOTE_AMOUNT_MISMATCH',
+                    message: 'Transfer amount does not match the quoted amount.',
+                    quotedAmount: quote.fromAmount.toString(),
+                    requestedAmount: dto.amount,
+                });
+            }
+
+
+
             // Step 2: Consume FX quote atomically
 
             const now = new Date();
@@ -204,27 +226,6 @@ export class TransactionService {
                 });
             }
 
-            // Fetch the consumed quote for rate details
-            const quote = await this.prisma.fXQuote.findUniqueOrThrow({
-                where: { id: dto.fxQuoteId },
-            });
-
-            // Validate currency alignment with the quote
-            if (quote.fromCurrency !== dto.fromCurrency) {
-                throw new RpcException({ statusCode: 400, error: 'QUOTE_CURRENCY_MISMATCH' });
-            }
-            if (quote.toCurrency !== dto.toCurrency) {
-                throw new RpcException({ statusCode: 400, error: 'QUOTE_CURRENCY_MISMATCH' });
-            }
-            if (parseFloat(quote.fromAmount.toString()) !== dto.amount) {
-                throw new RpcException({
-                    statusCode: 400,
-                    error: 'QUOTE_AMOUNT_MISMATCH',
-                    message: 'Transfer amount does not match the quoted amount.',
-                    quotedAmount: quote.fromAmount.toString(),
-                    requestedAmount: dto.amount,
-                });
-            }
 
             // Step 3: Validate wallets
             const [senderWallet, recipientWallet] = await Promise.all([
