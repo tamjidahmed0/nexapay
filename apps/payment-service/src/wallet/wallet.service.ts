@@ -61,6 +61,33 @@ export class WalletService {
     }
 
 
+    async getUserWallets(userId: string) {
+
+        const wallets = await this.prisma.wallet.findMany({
+            where: { userId },
+        });
+
+        return wallets.map((w) => this.formatWallet(w));
+    }
+
+
+    async getWallet(walletId: string) {
+        const wallet = await this.prisma.wallet.findUnique({
+            where: { id: walletId },
+        });
+
+        if (!wallet) {
+            throw new RpcException({
+                statusCode: 404,
+                error: 'WALLET_NOT_FOUND',
+                message: `Wallet ${walletId} not found.`,
+            });
+        }
+
+        return this.formatWallet(wallet);
+    }
+
+
 
 
     private formatWallet(wallet: any) {

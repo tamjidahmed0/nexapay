@@ -15,4 +15,14 @@ export class WalletController {
         return this.wallet.createWallet(userId, currency)
     }
 
+    @MessagePattern('get-wallets')
+    async getWallets(@Payload() userId: string) {
+        return this.wallet.getUserWallets(userId)
+    }
+
+    @MessagePattern('get-wallet')
+    async getWallet(@Payload() walletId: string) {
+        return this.wallet.getWallet(walletId)
+    }
+
 }

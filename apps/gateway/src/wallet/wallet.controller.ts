@@ -1,4 +1,4 @@
-import { Body, Controller, Inject, Post, Headers } from '@nestjs/common';
+import { Body, Controller, Inject, Post, Headers, Get } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { MICROSERVICE } from 'src/constants/constants';
 import { CreateWalletDto } from './dto/create-wallet.dto';
@@ -15,6 +15,17 @@ export class WalletController {
     async createWallet(@Body() dto: CreateWalletDto, @Headers('user-id') userId: string,) {
         return this.paymentClient.send('create-wallet', { userId, ...dto })
     }
+
+    @Get('get-wallets')
+    async getWallets(@Headers('user-id') userId: string) {
+        return this.paymentClient.send('get-wallets', userId)
+    }
+
+    @Get('get-wallet')
+    async getWallet(@Headers('wallet-id') walletId: string) {
+        return this.paymentClient.send('get-wallet', walletId)
+    }
+
 
 
 }
