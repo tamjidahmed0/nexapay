@@ -1,11 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { IdempotencyService } from './idempotency.service';
 import { CreateInternalTransferPayload } from './interface/CreateInternalTransfer';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { RpcException } from '@nestjs/microservices';
+import { ClientProxy, RpcException } from '@nestjs/microservices';
 import { TransferExecutor } from './transfer.executor.service';
 import { CreateInternationalTransfer } from './interface/international-transfer';
-import { stat } from 'fs';
+import { MICROSERVICE } from 'src/constants/constants';
+import { firstValueFrom } from 'rxjs';
 
 @Injectable()
 export class TransactionService {
@@ -13,7 +14,8 @@ export class TransactionService {
     constructor(
         private readonly idempotency: IdempotencyService,
         private prisma: PrismaService,
-        private readonly transferExecutor: TransferExecutor
+        private readonly transferExecutor: TransferExecutor,
+        @Inject(MICROSERVICE.USER_SERVICE) private accountClient: ClientProxy,
     ) { }
 
 
@@ -314,9 +316,6 @@ export class TransactionService {
 
 
 
-
-
-
     async getUserTransactions({ userId, cursor, limit = 20 }) {
         const transactions = await this.prisma.transaction.findMany({
             where: {
@@ -324,21 +323,44 @@ export class TransactionService {
             },
             orderBy: { createdAt: 'desc' },
             take: limit + 1,
-            ...(cursor && {
-                cursor: { id: cursor },
-                skip: 1,
-            }),
+            ...(cursor && { cursor: { id: cursor }, skip: 1 }),
         });
 
         const hasNextPage = transactions.length > limit;
         const items = hasNextPage ? transactions.slice(0, limit) : transactions;
 
+
+        const userIds = [
+            ...new Set(
+                items.flatMap((tx) =>
+                    [tx.senderUserId, tx.recipientUserId].filter(Boolean),
+                ),
+            ),
+        ];
+
+
+        const users = await firstValueFrom(
+            this.accountClient.send('get_users_by_ids', { ids: userIds }),
+        );
+
+        const userMap = new Map(users.map((u) => [u.id, u.name]));
+
         return {
-            items: items.map(this.formatTransaction),
+            items: items.map((tx) => ({
+                ...this.formatTransaction(tx),
+                isCredit: tx.recipientUserId === userId,
+                senderName: tx.senderUserId === userId
+                    ? 'You'
+                    : (userMap.get(tx.senderUserId) ?? 'Unknown'),
+                recipientName: tx.recipientUserId === userId
+                    ? 'You'
+                    : (userMap.get(tx.recipientUserId) ?? 'Unknown'),
+            })),
             nextCursor: hasNextPage ? items[items.length - 1].id : null,
             hasNextPage,
         };
     }
+
 
 
     async getTransaction(transactionId: string) {

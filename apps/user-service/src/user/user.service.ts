@@ -52,7 +52,7 @@ export class UserService {
 
     }
 
-    async userExists(dto : {userId:string}) {
+    async userExists(dto: { userId: string }) {
         const user = await this.prisma.user.findUnique({
             where: { id: dto.userId },
         });
@@ -60,6 +60,19 @@ export class UserService {
         return user
     }
 
+
+
+    async getUsersByIds(data: { ids: string[] }) {
+        const users = await this.prisma.user.findMany({
+            where: { id: { in: data.ids } },
+            select: { id: true, nameEncrypted: true },
+        });
+
+        return users.map((u) => ({
+            id: u.id,
+            name: this.encryption.decrypt(u.nameEncrypted),
+        }));
+    }
 
 
 

@@ -23,4 +23,9 @@ export class UserController {
     }
 
 
+    @MessagePattern('get_users_by_ids')
+    async getUsersByIds(@Payload() data) {
+        return this.userService.getUsersByIds(data)
+    }
+
 }

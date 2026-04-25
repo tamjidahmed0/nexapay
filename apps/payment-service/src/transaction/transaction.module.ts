@@ -6,10 +6,23 @@ import { PrismaModule } from 'src/prisma/prisma.module';
 import { TransferExecutor } from './transfer.executor.service';
 import { FeeService } from './fee.service';
 import { LedgerService } from './ledger.service';
+import { ClientsModule, Transport } from '@nestjs/microservices';
+import { MICROSERVICE } from 'src/constants/constants';
 
 @Module({
-  imports:[PrismaModule],
+  imports: [
+    ClientsModule.register([
+      {
+        name: MICROSERVICE.USER_SERVICE,
+        transport: Transport.TCP,
+        options: {
+          port: 3001
+        }
+      },
+    ]),
+    PrismaModule
+  ],
   providers: [TransactionService, IdempotencyService, TransferExecutor, FeeService, LedgerService],
   controllers: [TransactionController]
 })
-export class TransactionModule {}
+export class TransactionModule { }
