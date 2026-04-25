@@ -4,6 +4,7 @@ import { ClientProxy, RpcException } from '@nestjs/microservices';
 import { Prisma } from 'generated/prisma/client';
 import { firstValueFrom } from 'rxjs';
 import { MICROSERVICE } from 'src/constants/constants';
+import { getCurrencySymbol } from 'src/utils/currency.util';
 
 @Injectable()
 export class WalletService {
@@ -143,10 +144,9 @@ export class WalletService {
     private formatWallet(wallet: any) {
         return {
             id: wallet.id,
-            userId: wallet.userId,
             currency: wallet.currency,
+            currencySymbol: getCurrencySymbol(wallet.currency),
             balance: wallet.balance.toString(),
-            ledgerAccountCode: wallet.ledgerAccountCode,
             isActive: wallet.isActive,
             createdAt: wallet.createdAt,
             updatedAt: wallet.updatedAt,
