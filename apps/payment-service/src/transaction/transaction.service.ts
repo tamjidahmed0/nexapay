@@ -24,6 +24,9 @@ export class TransactionService {
         dto: CreateInternalTransferPayload,
     ) {
 
+        const ids = [dto.senderUserId, dto.recipientUserId];
+        const uniqueIds = Array.from(new Set(ids));
+
         // Step 1: Idempotency check
         const idempotencyResult = await this.idempotency.acquireOrReplay(
             dto.idempotencyKey,
@@ -41,6 +44,21 @@ export class TransactionService {
 
 
         try {
+
+            // Validate users exist by calling user service
+            const isUSerExist = await firstValueFrom(
+                this.accountClient.send('get_users_by_ids', { ids: uniqueIds }),
+            )
+
+            if (!isUSerExist || isUSerExist.length !== uniqueIds.length) {
+                throw new RpcException({
+                    statusCode: 404,
+                    error: 'USER_NOT_FOUND',
+                    message: 'One or more users not found',
+                });
+            }
+
+
             // Step 2: Validate wallets
             const [senderWallet, recipientWallet] = await Promise.all([
                 this.prisma.wallet.findUnique({ where: { id: dto.senderWalletId } }),
@@ -345,20 +363,56 @@ export class TransactionService {
 
         const userMap = new Map(users.map((u) => [u.id, u.name]));
 
+        // return {
+        //     items: items.map((tx) => ({
+        //         ...this.formatTransaction(tx),
+        //         isCredit: tx.recipientUserId === userId,
+        //         senderName: tx.senderUserId === userId
+        //             ? 'You'
+        //             : (userMap.get(tx.senderUserId) ?? 'Unknown'),
+        //         recipientName: tx.recipientUserId === userId
+        //             ? 'You'
+        //             : (userMap.get(tx.recipientUserId) ?? 'Unknown'),
+        //     })),
+        //     nextCursor: hasNextPage ? items[items.length - 1].id : null,
+        //     hasNextPage,
+        // };
+
         return {
-            items: items.map((tx) => ({
-                ...this.formatTransaction(tx),
-                isCredit: tx.recipientUserId === userId,
-                senderName: tx.senderUserId === userId
-                    ? 'You'
-                    : (userMap.get(tx.senderUserId) ?? 'Unknown'),
-                recipientName: tx.recipientUserId === userId
-                    ? 'You'
-                    : (userMap.get(tx.recipientUserId) ?? 'Unknown'),
-            })),
+            items: items.map((tx) => {
+                const meta = (tx.metadata as any) ?? {};
+                const isCredit = tx.recipientUserId === userId;
+
+                return {
+                    ...this.formatTransaction(tx),
+
+                    fee:
+                        tx.recipientUserId !== userId && meta.feeAmount != null
+                            ? {
+                                amount: meta.feeAmount.toString(),
+                                currency: meta.feeCurrency ?? tx.currency,
+                                accountCode: meta.feeAccountCode ?? null,
+                            }
+                            : null,
+
+                    isCredit,
+
+                    senderName:
+                        tx.senderUserId === userId
+                            ? 'You'
+                            : userMap.get(tx.senderUserId) ?? 'Unknown',
+
+                    recipientName:
+                        tx.recipientUserId === userId
+                            ? 'You'
+                            : userMap.get(tx.recipientUserId) ?? 'Unknown',
+                };
+            }),
+
             nextCursor: hasNextPage ? items[items.length - 1].id : null,
             hasNextPage,
         };
+
     }
 
 
@@ -400,13 +454,13 @@ export class TransactionService {
             fromCurrency: tx.fromCurrency ?? null,
             toCurrency: tx.toCurrency ?? null,
             toAmount: tx.toAmount?.toString() ?? null,
-            fee: meta.feeAmount != null
-                ? {
-                    amount: meta.feeAmount.toString(),
-                    currency: meta.feeCurrency ?? tx.currency,
-                    accountCode: meta.feeAccountCode ?? null,
-                }
-                : null,
+            // fee: meta.feeAmount != null
+            //     ? {
+            //         amount: meta.feeAmount.toString(),
+            //         currency: meta.feeCurrency ?? tx.currency,
+            //         accountCode: meta.feeAccountCode ?? null,
+            //     }
+            //     : null,
             totalDebited: meta.totalDebited != null
                 ? meta.totalDebited.toString()
                 : tx.amount?.toString(),
