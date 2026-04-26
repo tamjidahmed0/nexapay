@@ -7,6 +7,7 @@ import { TransferExecutor } from './transfer.executor.service';
 import { CreateInternationalTransfer } from './interface/international-transfer';
 import { MICROSERVICE } from 'src/constants/constants';
 import { firstValueFrom } from 'rxjs';
+import { getCurrencySymbol } from 'src/utils/currency.util';
 
 @Injectable()
 export class TransactionService {
@@ -450,17 +451,11 @@ export class TransactionService {
             recipientWalletId: tx.recipientWalletId,
             amount: tx.amount?.toString(),
             currency: tx.currency,
+            currencySymbol: getCurrencySymbol(tx.currency),
             fxRate: tx.fxRate?.toString() ?? null,
             fromCurrency: tx.fromCurrency ?? null,
             toCurrency: tx.toCurrency ?? null,
             toAmount: tx.toAmount?.toString() ?? null,
-            // fee: meta.feeAmount != null
-            //     ? {
-            //         amount: meta.feeAmount.toString(),
-            //         currency: meta.feeCurrency ?? tx.currency,
-            //         accountCode: meta.feeAccountCode ?? null,
-            //     }
-            //     : null,
             totalDebited: meta.totalDebited != null
                 ? meta.totalDebited.toString()
                 : tx.amount?.toString(),
