@@ -25,10 +25,8 @@ export class TransactionService {
         dto: CreateInternalTransferPayload,
     ) {
 
-        const ids = [dto.senderUserId, dto.recipientUserId];
-        const uniqueIds = Array.from(new Set(ids));
 
-        // Step 1: Idempotency check
+        // Idempotency check
         const idempotencyResult = await this.idempotency.acquireOrReplay(
             dto.idempotencyKey,
             dto.senderUserId,
@@ -46,25 +44,50 @@ export class TransactionService {
 
         try {
 
-            // Validate users exist by calling user service
+            const recipient = await firstValueFrom(
+                this.accountClient.send('find_user_by_identifier', {
+                    identifier: dto.recipientIdentifier,
+                }),
+            );
+
+
             const isUSerExist = await firstValueFrom(
-                this.accountClient.send('get_users_by_ids', { ids: uniqueIds }),
+                this.accountClient.send('user-exists', { userId: dto.senderUserId }),
             )
 
-            if (!isUSerExist || isUSerExist.length !== uniqueIds.length) {
+
+
+            if (!isUSerExist) {
+                console.log('sender not found')
                 throw new RpcException({
                     statusCode: 404,
-                    error: 'USER_NOT_FOUND',
-                    message: 'One or more users not found',
+                    error: 'SENDER_USER_NOT_FOUND',
+                    message: `Sender user with ID ${dto.senderUserId} not found`,
                 });
             }
 
 
-            // Step 2: Validate wallets
+
+            if (!recipient) {
+                throw new RpcException({
+                    statusCode: 404,
+                    error: 'USER_NOT_FOUND',
+                    message: `No user found with identifier ${dto.recipientIdentifier}`,
+                });
+            }
+
+
+
             const [senderWallet, recipientWallet] = await Promise.all([
                 this.prisma.wallet.findUnique({ where: { id: dto.senderWalletId } }),
-                this.prisma.wallet.findUnique({ where: { id: dto.recipientWalletId } }),
+                this.prisma.wallet.findFirst({
+                    where: {
+                        userId: recipient.id,
+                        currency: dto.currency,
+                    },
+                }),
             ]);
+
 
 
             if (!senderWallet) {
@@ -113,7 +136,7 @@ export class TransactionService {
                 });
             }
 
-            if (dto.senderWalletId === dto.recipientWalletId) {
+            if (dto.senderWalletId === recipientWallet.id) {
                 throw new RpcException({
                     statusCode: 400,
                     error: 'SELF_TRANSFER_NOT_ALLOWED',
@@ -121,15 +144,15 @@ export class TransactionService {
                 });
             }
 
-            // Step 3: Create transaction record
+            // Create transaction record
             const transaction = await this.prisma.transaction.create({
                 data: {
                     type: 'INTERNAL_TRANSFER',
                     status: 'PENDING',
                     senderWalletId: dto.senderWalletId,
                     senderUserId: dto.senderUserId,
-                    recipientWalletId: dto.recipientWalletId,
-                    recipientUserId: dto.recipientUserId,
+                    recipientWalletId: recipientWallet.id,
+                    recipientUserId: recipient.id,
                     amount: dto.amount,
                     currency: dto.currency,
                     metadata: dto.note ? { note: dto.note } : undefined,
@@ -143,7 +166,7 @@ export class TransactionService {
 
             const response = this.formatTransaction(completed);
 
-            // Step 5: Cache response for future replays
+            //Cache response for future replays
             await this.idempotency.markCompleted(
                 dto.idempotencyKey,
                 transaction.id,

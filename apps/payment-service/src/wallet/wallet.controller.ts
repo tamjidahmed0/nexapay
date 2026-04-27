@@ -35,4 +35,6 @@ export class WalletController {
         return this.wallet.getBalance(walletId)
     }
 
+
+
 }

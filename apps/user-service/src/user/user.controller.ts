@@ -28,4 +28,14 @@ export class UserController {
         return this.userService.getUsersByIds(data)
     }
 
+
+
+    @MessagePattern('find_user_by_identifier')
+    async findUserByIdentifier(@Payload() data) {
+        const { identifier } = data;
+        const user = await this.userService.findUserByIdentifier(identifier);
+        return user 
+    }
+
+
 }

@@ -75,6 +75,33 @@ export class UserService {
     }
 
 
+    async findUserByIdentifier(identifier: string) {
+
+
+        const isEmail = identifier.includes('@');
+        const isUUID = /^[0-9a-f-]{36}$/.test(identifier);
+
+        let user;
+
+        if (isUUID) {
+            user = await this.prisma.user.findUnique({ where: { id: identifier } });
+        } else if (isEmail) {
+            user = await this.prisma.user.findUnique({ where: { email: identifier } });
+        }
+
+
+        if (!user) {
+            return null;
+        }
+
+        return {
+            id: user.id,
+            name: this.encryption.decrypt(user.nameEncrypted),
+            email: user.email,
+        };
+    }
+
+
 
     private formatUser(user: any) {
         return {

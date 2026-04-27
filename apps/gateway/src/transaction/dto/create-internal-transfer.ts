@@ -20,13 +20,11 @@ export class CreateInternalTransferDto {
   senderWalletId!: string;
 
   @IsUUID()
-  recipientWalletId!: string;
-
-  @IsUUID()
   senderUserId!: string;
 
-  @IsUUID()
-  recipientUserId!: string;
+  @IsString()
+  @MinLength(1)
+  recipientIdentifier!: string;
 
   @IsNumber({ maxDecimalPlaces: 8 })
   @IsPositive()
