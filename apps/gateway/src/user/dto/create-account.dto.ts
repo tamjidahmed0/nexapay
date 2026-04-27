@@ -8,6 +8,10 @@ export class CreateAccountDto {
   @MinLength(2)
   name!: string;
 
+  @IsString()
+  @MinLength(6)
+  password!: string;
+
   @IsOptional()
   @IsString()
   phone?: string;

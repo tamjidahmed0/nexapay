@@ -6,6 +6,8 @@ import { EncryptionService } from './encrypt.service';
 import { Redis } from 'ioredis';
 import * as crypto from 'crypto';
 import { TokenService } from './token.service';
+import * as bcrypt from 'bcrypt';
+
 
 const OTP_TTL_SECONDS = 300;       // 5 min
 
@@ -23,7 +25,6 @@ export class UserService {
 
 
     async initiateRegistration(dto: CreateUserPayload) {
-
         const existing = await this.prisma.user.findUnique({
             where: { email: dto.email },
         });
@@ -37,27 +38,25 @@ export class UserService {
         }
 
         const otpKey = `otp:pending:${dto.email}`;
-        const raw = await this.redis.get(otpKey);
 
-        let otp: string;
+        const otp = this.generateOtp();
 
-        if (raw) {
-            otp = JSON.parse(raw).otp;
-        } else {
-            otp = this.generateOtp();
-            await this.redis.set(
-                otpKey,
-                JSON.stringify({ otp, payload: dto }),
-                'EX',
-                OTP_TTL_SECONDS,
-            );
-        }
+        const passwordHash = await bcrypt.hash(dto.password, 12);
+        const otpHash = await bcrypt.hash(otp, 10);
+
+        await this.redis.set(
+            otpKey,
+            JSON.stringify({
+                otpHash,
+                payload: { ...dto, password: passwordHash },
+            }),
+            'EX',
+            OTP_TTL_SECONDS,
+        );
 
         console.log(`[OTP] ${dto.email} → ${otp}`);
 
         return { message: 'OTP sent. Verify within 5 minutes.', email: dto.email };
-
-
     }
 
 
@@ -74,12 +73,27 @@ export class UserService {
             });
         }
 
-        const stored: { otp: string; payload: CreateUserPayload; attempts: number } =
+        const stored: { otpHash: string; payload: CreateUserPayload; attempts: number } =
             JSON.parse(raw);
 
 
         // Wrong OTP → increment attempt counter, keep remaining TTL
-        if (stored.otp !== dto.otp) {
+        // if (stored.otp !== dto.otp) {
+        //     const ttl = await this.redis.ttl(otpKey);
+        //     await this.redis.set(otpKey, JSON.stringify(stored), 'EX', ttl);
+
+        //     throw new RpcException({
+        //         statusCode: 400,
+        //         error: 'INVALID_OTP',
+        //         message: `Invalid OTP.`,
+        //     });
+        // }
+
+
+        const isOtpValid = await bcrypt.compare(dto.otp, stored.otpHash);
+
+
+        if (!isOtpValid) {
             const ttl = await this.redis.ttl(otpKey);
             await this.redis.set(otpKey, JSON.stringify(stored), 'EX', ttl);
 
@@ -90,6 +104,7 @@ export class UserService {
             });
         }
 
+
         // OTP valid → delete key → create user
         await this.redis.del(otpKey);
 
@@ -98,6 +113,7 @@ export class UserService {
             data: {
                 email: payload.email,
                 nameEncrypted: this.encryption.encrypt(payload.name),
+                password: payload.password,
                 phoneEncrypted: payload.phone ? this.encryption.encrypt(payload.phone) : null,
                 nationalIdEncrypted: payload.nationalId
                     ? this.encryption.encrypt(payload.nationalId)
