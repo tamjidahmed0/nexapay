@@ -33,5 +33,11 @@ export class UserController {
 
     }
 
+    @Post('verify-otp')
+    async verifyOtp(@Body() dto) {
+        return await firstValueFrom(this.userClient.send('verify-otp', dto));
+
+    }
+
 
 }

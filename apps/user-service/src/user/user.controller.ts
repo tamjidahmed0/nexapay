@@ -11,9 +11,13 @@ export class UserController {
 
     @MessagePattern('create-user')
     async createUser(@Payload() dto) {
-        return this.userService.createUser(dto)
+        return this.userService.initiateRegistration(dto)
     }
 
+    @MessagePattern('verify-otp')
+    async verifyOtp(@Payload() dto) {
+        return this.userService.verifyAndCreateUser(dto)
+    }
 
 
     @MessagePattern('user-exists')
@@ -34,7 +38,7 @@ export class UserController {
     async findUserByIdentifier(@Payload() data) {
         const { identifier } = data;
         const user = await this.userService.findUserByIdentifier(identifier);
-        return user 
+        return user
     }
 
 

@@ -4,3 +4,8 @@ export interface CreateUserPayload {
   phone?: string;
   nationalId?: string;
 }
+
+export interface VerifyOtpPayload {
+  email: string;
+  otp: string;
+}
