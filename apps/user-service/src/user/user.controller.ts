@@ -19,6 +19,11 @@ export class UserController {
         return this.userService.verifyAndCreateUser(dto)
     }
 
+    @MessagePattern('login')
+    async login(@Payload() dto) {
+        return this.userService.login(dto)
+    }
+
 
     @MessagePattern('user-exists')
     async userExists(@Payload() dto) {

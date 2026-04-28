@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { CreateUserPayload, VerifyOtpPayload } from './interface/interface';
+import { CreateUserPayload, LoginPayload, VerifyOtpPayload } from './interface/interface';
 import { RpcException } from '@nestjs/microservices';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { EncryptionService } from './encrypt.service';
@@ -121,6 +121,44 @@ export class UserService {
                 encryptionKeyId: process.env.ENCRYPTION_KEY_ID ?? 'kek-v1',
             },
         });
+
+        const accessToken = await this.tokenService.generateAccessToken(
+            user.id,
+            user.email,
+        );
+
+        return {
+            user: this.formatUser(user),
+            accessToken,
+        };
+    }
+
+
+
+
+    async login(dto: LoginPayload) {
+        const user = await this.prisma.user.findUnique({
+            where: { email: dto.email },
+        });
+
+        if (!user) {
+            throw new RpcException({
+                statusCode: 401,
+                error: 'INVALID_CREDENTIALS',
+                message: 'Invalid credentials.',
+            });
+        }
+
+
+
+        const isMatch = await bcrypt.compare(dto.password, user.password);
+        if (!isMatch) {
+            throw new RpcException({
+                statusCode: 401,
+                error: 'INVALID_CREDENTIALS',
+                message: 'Invalid credentials.',
+            });
+        }
 
         const accessToken = await this.tokenService.generateAccessToken(
             user.id,

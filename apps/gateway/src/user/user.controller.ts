@@ -3,6 +3,7 @@ import { ClientProxy } from '@nestjs/microservices';
 import { MICROSERVICE } from 'src/constants/constants';
 import { CreateAccountDto } from './dto/create-account.dto';
 import { catchError, firstValueFrom } from 'rxjs';
+import { UserLoginDto } from './dto/login.dto';
 
 @Controller('user')
 export class UserController {
@@ -36,6 +37,12 @@ export class UserController {
     @Post('verify-otp')
     async verifyOtp(@Body() dto) {
         return await firstValueFrom(this.userClient.send('verify-otp', dto));
+
+    }
+
+    @Post('login')
+    async login(@Body() dto : UserLoginDto) {
+        return await firstValueFrom(this.userClient.send('login', dto));
 
     }
 
