@@ -72,9 +72,9 @@ export class WalletService {
     }
 
 
-    async getWallet(walletId: string) {
+    async getWallet(walletId: string, userId: string) {
         const wallet = await this.prisma.wallet.findUnique({
-            where: { id: walletId },
+            where: { id: walletId, userId },
         });
 
         if (!wallet) {
@@ -110,9 +110,10 @@ export class WalletService {
     }
 
 
-    async getBalance(walletId: string) {
+    async getBalance(walletId: string, userId: string) {
+
         const wallet = await this.prisma.wallet.findUnique({
-            where: { id: walletId },
+            where: { id: walletId, userId },
             select: {
                 id: true,
                 userId: true,

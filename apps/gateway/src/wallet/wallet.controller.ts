@@ -1,7 +1,8 @@
-import { Body, Controller, Inject, Post, Headers, Get } from '@nestjs/common';
+import { Body, Controller, Inject, Post, Get, Req, UseGuards, Param } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { MICROSERVICE } from 'src/constants/constants';
 import { CreateWalletDto } from './dto/create-wallet.dto';
+import { SessionAuthGuard } from 'src/guard/session.guard';
 
 @Controller('wallet')
 export class WalletController {
@@ -12,28 +13,38 @@ export class WalletController {
 
 
     @Post('create')
-    async createWallet(@Body() dto: CreateWalletDto, @Headers('user-id') userId: string,) {
+    @UseGuards(SessionAuthGuard)
+    async createWallet(@Body() dto: CreateWalletDto, @Req() req) {
+        const userId = req.userId;
         return this.paymentClient.send('create-wallet', { userId, ...dto })
     }
 
     @Get('get-wallets')
-    async getWallets(@Headers('user-id') userId: string) {
+    @UseGuards(SessionAuthGuard)
+    async getWallets(@Req() req) {
+        const userId = req.userId;
         return this.paymentClient.send('get-wallets', userId)
     }
 
-    @Get('get-wallet')
-    async getWallet(@Headers('wallet-id') walletId: string) {
-        return this.paymentClient.send('get-wallet', walletId)
+    @Get('get-wallet/:walletId')
+    @UseGuards(SessionAuthGuard)
+    async getWallet(@Param('walletId') walletId, @Req() req) {
+        const userId = req.userId;
+        return this.paymentClient.send('get-wallet', { walletId, userId })
     }
 
     @Get('get-balances')
-    async getBalances(@Headers('user-id') userId) {
+    @UseGuards(SessionAuthGuard)
+    async getBalances(@Req() req) {
+        const userId = req.userId;
         return this.paymentClient.send('get-balances', userId)
     }
 
-    @Get('get-balance')
-    async getBalance(@Headers('wallet-id') walletId) {
-        return this.paymentClient.send('get-balance', { walletId })
+    @Get('get-balance/:walletId')
+    @UseGuards(SessionAuthGuard)
+    async getBalance(@Param('walletId') walletId, @Req() req) {
+        const userId = req.userId;
+        return this.paymentClient.send('get-balance', { walletId, userId })
     }
 
 

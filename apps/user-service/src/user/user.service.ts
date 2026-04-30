@@ -160,14 +160,13 @@ export class UserService {
             });
         }
 
-        const accessToken = await this.tokenService.generateAccessToken(
-            user.id,
-            user.email,
-        );
+        // const accessToken = await this.tokenService.generateAccessToken(
+        //     user.id,
+        //     user.email,
+        // );
 
         return {
             user: this.formatUser(user),
-            accessToken,
         };
     }
 

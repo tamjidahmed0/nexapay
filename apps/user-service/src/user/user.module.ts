@@ -17,7 +17,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
         publicKey: config.get<string>('JWT_PUBLIC_KEY')?.replace(/\\n/g, '\n') ?? '',
         signOptions: {
           algorithm: 'RS256',
-          expiresIn: config.get<number>('JWT_EXPIRES_IN') ?? 900,
+          expiresIn: parseInt(config.get('JWT_EXPIRES_IN') ?? '900'),
         },
       }),
     }),

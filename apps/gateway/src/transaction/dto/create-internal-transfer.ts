@@ -16,12 +16,6 @@ export class CreateInternalTransferDto {
   @MinLength(1)
   idempotencyKey!: string;
 
-  @IsUUID()
-  senderWalletId!: string;
-
-  @IsUUID()
-  senderUserId!: string;
-
   @IsString()
   @MinLength(1)
   recipientIdentifier!: string;

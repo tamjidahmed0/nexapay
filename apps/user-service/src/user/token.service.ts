@@ -15,6 +15,7 @@ export class TokenService {
 
     const token = this.jwtService.sign(
       { sub: userId, email, sessionId },
+      {expiresIn: parseInt(process.env.JWT_EXPIRES_IN ?? '900')},
     );
 
     await this.redis.set(

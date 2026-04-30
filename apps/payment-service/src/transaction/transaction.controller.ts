@@ -12,7 +12,8 @@ export class TransactionController {
 
     @MessagePattern('create-internal-transfer')
     async createInternalTransfer(@Payload() dto) {
-        return this.transactionService.createInternalTransfer(dto)
+        const { userId, senderWalletId } = dto
+        return this.transactionService.createInternalTransfer(dto, userId, senderWalletId)
     }
 
     @MessagePattern('create-international-transfer')
@@ -23,6 +24,7 @@ export class TransactionController {
     @MessagePattern('get-user-transactions')
     async getUserTransactions(@Payload() dto) {
         const { userId, cursor, limit } = dto
+        console.log(userId)
         return this.transactionService.getUserTransactions({ userId, cursor, limit })
     }
 

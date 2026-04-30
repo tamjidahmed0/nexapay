@@ -5,6 +5,9 @@ import { MICROSERVICE } from './constants/constants';
 import { WalletController } from './wallet/wallet.controller';
 import { TransactionController } from './transaction/transaction.controller';
 import { FxController } from './fx/fx.controller';
+import { RedisModule } from './redis/redis.module';
+import { SessionAuthGuard } from './guard/session.guard';
+
 
 @Module({
   imports: [
@@ -23,8 +26,10 @@ import { FxController } from './fx/fx.controller';
           port: 3002
         }
       }
-    ])
+    ]),
+    RedisModule
   ],
+  providers:[SessionAuthGuard],
   controllers: [UserController, WalletController, TransactionController, FxController],
 })
 export class AppModule { }

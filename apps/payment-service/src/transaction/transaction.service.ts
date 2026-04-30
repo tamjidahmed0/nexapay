@@ -23,16 +23,17 @@ export class TransactionService {
 
     async createInternalTransfer(
         dto: CreateInternalTransferPayload,
+        userId: string,
+        senderWalletId: string
     ) {
 
-
+        console.log(userId)
         // Idempotency check
         const idempotencyResult = await this.idempotency.acquireOrReplay(
             dto.idempotencyKey,
-            dto.senderUserId,
+            userId,
             dto,
         );
-
 
 
         // Replay — return cached response, no processing
@@ -52,7 +53,7 @@ export class TransactionService {
 
 
             const isUSerExist = await firstValueFrom(
-                this.accountClient.send('user-exists', { userId: dto.senderUserId }),
+                this.accountClient.send('user-exists', { userId }),
             )
 
 
@@ -62,7 +63,7 @@ export class TransactionService {
                 throw new RpcException({
                     statusCode: 404,
                     error: 'SENDER_USER_NOT_FOUND',
-                    message: `Sender user with ID ${dto.senderUserId} not found`,
+                    message: `Sender user with ID ${userId} not found`,
                 });
             }
 
@@ -79,7 +80,7 @@ export class TransactionService {
 
 
             const [senderWallet, recipientWallet] = await Promise.all([
-                this.prisma.wallet.findUnique({ where: { id: dto.senderWalletId } }),
+                this.prisma.wallet.findUnique({ where: { id: senderWalletId } }),
                 this.prisma.wallet.findFirst({
                     where: {
                         userId: recipient.id,
@@ -136,7 +137,7 @@ export class TransactionService {
                 });
             }
 
-            if (dto.senderWalletId === recipientWallet.id) {
+            if (senderWalletId === recipientWallet.id) {
                 throw new RpcException({
                     statusCode: 400,
                     error: 'SELF_TRANSFER_NOT_ALLOWED',
@@ -144,32 +145,26 @@ export class TransactionService {
                 });
             }
 
-            // Create transaction record
-            const transaction = await this.prisma.transaction.create({
-                data: {
-                    type: 'INTERNAL_TRANSFER',
-                    status: 'PENDING',
-                    senderWalletId: dto.senderWalletId,
-                    senderUserId: dto.senderUserId,
-                    recipientWalletId: recipientWallet.id,
-                    recipientUserId: recipient.id,
-                    amount: dto.amount,
-                    currency: dto.currency,
-                    metadata: dto.note ? { note: dto.note } : undefined,
-                },
-            });
-            await this.transferExecutor.execute(transaction.id)
 
-            const completed = await this.prisma.transaction.findUniqueOrThrow({
-                where: { id: transaction.id },
+
+            const completed = await this.transferExecutor.execute({
+                type: 'INTERNAL_TRANSFER',
+                senderWalletId,
+                senderUserId: userId,
+                recipientWalletId: recipientWallet.id,
+                recipientUserId: recipient.id,
+                amount: dto.amount,
+                currency: dto.currency,
+                metadata: dto.note ? { note: dto.note } : undefined,
             });
+
 
             const response = this.formatTransaction(completed);
 
             //Cache response for future replays
             await this.idempotency.markCompleted(
                 dto.idempotencyKey,
-                transaction.id,
+                completed.id,
                 response,
                 201,
             );
@@ -312,39 +307,29 @@ export class TransactionService {
             }
 
             // Step 4: Create transaction with locked rate recorded
-            const transaction = await this.prisma.transaction.create({
-                data: {
-                    type: 'INTERNATIONAL_TRANSFER',
-                    status: 'PENDING',
-                    senderWalletId: dto.senderWalletId,
-                    senderUserId: dto.senderUserId,
-                    recipientWalletId: dto.recipientWalletId,
-                    recipientUserId: dto.recipientUserId,
-                    amount: dto.amount,
-                    currency: dto.fromCurrency,
-                    fxQuoteId: quote.id,
-                    fxRate: quote.rate,       // exact locked rate — on ledger entry too
-                    fromCurrency: dto.fromCurrency,
-                    toCurrency: dto.toCurrency,
-                    toAmount: quote.toAmount, // recipient gets exactly this
-                    metadata: dto.note ? { note: dto.note } : undefined,
-                },
+
+            const completed = await this.transferExecutor.execute({
+                type: 'INTERNATIONAL_TRANSFER',
+                senderWalletId: dto.senderWalletId,
+                senderUserId: dto.senderUserId,
+                recipientWalletId: dto.recipientWalletId,
+                recipientUserId: dto.recipientUserId,
+                amount: dto.amount,
+                currency: dto.fromCurrency,
+                fxQuoteId: quote.id,
+                fxRate: quote.rate,
+                fromCurrency: dto.fromCurrency,
+                toCurrency: dto.toCurrency,
+                toAmount: quote.toAmount,
+                metadata: dto.note ? { note: dto.note } : undefined,
             });
 
-
-
-            // Step 5: Execute transaction executor to perform balance updates and finalize the transaction
-            await this.transferExecutor.execute(transaction.id);
-
-            const completed = await this.prisma.transaction.findUniqueOrThrow({
-                where: { id: transaction.id },
-            });
 
             const response = this.formatTransaction(completed);
 
             await this.idempotency.markCompleted(
                 dto.idempotencyKey,
-                transaction.id,
+                completed.id,
                 response,
                 201,
             );
