@@ -82,8 +82,7 @@ export class TransactionService {
                 this.prisma.wallet.findFirst({ where: { userId } }),
                 this.prisma.wallet.findFirst({
                     where: {
-                        userId: recipient.id,
-                        currency: dto.currency,
+                        userId: recipient.id
                     },
                 }),
             ]);
@@ -121,21 +120,7 @@ export class TransactionService {
                 });
             }
 
-            if (senderWallet.currency !== dto.currency) {
-                throw new RpcException({
-                    statusCode: 400,
-                    error: 'SENDER_CURRENCY_MISMATCH',
-                    message: `Sender wallet currency (${senderWallet.currency}) does not match transfer currency (${dto.currency})`,
-                });
-            }
 
-            if (recipientWallet.currency !== dto.currency) {
-                throw new RpcException({
-                    statusCode: 400,
-                    error: 'RECIPIENT_CURRENCY_MISMATCH',
-                    message: `Recipient wallet currency (${recipientWallet.currency}) does not match transfer currency (${dto.currency})`,
-                });
-            }
 
             if (senderWallet.id === recipientWallet.id) {
                 throw new RpcException({
@@ -154,7 +139,7 @@ export class TransactionService {
                 recipientWalletId: recipientWallet.id,
                 recipientUserId: recipient.id,
                 amount: dto.amount,
-                currency: dto.currency,
+                currency: "BDT",
                 metadata: dto.note ? { note: dto.note } : undefined,
             });
 

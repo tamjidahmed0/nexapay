@@ -8,7 +8,7 @@ export interface CreateInternalTransferPayload {
 
   amount: number;
 
-  currency: SupportedCurrency;
+  // currency: SupportedCurrency;
 
   feeAmount?: number;
 

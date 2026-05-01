@@ -1,15 +1,12 @@
 import {
-  IsUUID,
   IsString,
   IsPositive,
   IsNumber,
   IsOptional,
-  IsIn,
   MinLength,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
-const SUPPORTED_CURRENCIES = ['USD', 'BDT', 'EUR', 'GBP', 'SGD'];
 
 export class CreateInternalTransferDto {
   @IsString()
@@ -25,9 +22,6 @@ export class CreateInternalTransferDto {
   @Type(() => Number)
   amount!: number;
 
-  @IsString()
-  @IsIn(SUPPORTED_CURRENCIES)
-  currency!: string;
 
   @IsOptional()
   @IsNumber({ maxDecimalPlaces: 8 })
