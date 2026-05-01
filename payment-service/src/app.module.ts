@@ -11,7 +11,7 @@ import { RedisModule } from './redis/redis.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot(),
+    ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule,
     WalletModule,
     TransactionModule,

@@ -1,0 +1,132 @@
+# services:
+#   postgres:
+#     image: postgres:16-alpine
+#     restart: unless-stopped
+#     environment:
+#       POSTGRES_USER: ${POSTGRES_USER}
+#       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+#       POSTGRES_DB: ${POSTGRES_DB}
+#     volumes:
+#       - postgres_data:/var/lib/postgresql/data
+
+#   redis:
+#     image: redis:7-alpine
+#     restart: unless-stopped
+#     volumes:
+#       - redis_data:/data
+
+#   gateway:
+#     build: ./gateway
+#     ports:
+#       - "3000:3000"
+#     env_file:
+#       - .env
+#     depends_on:
+#       - user-service
+#       - payment-service
+#       - postgres
+#       - redis
+
+#   user-service:
+#     build: ./user-service
+#     ports:
+#       - "3001"
+#     env_file:
+#       - .env
+#       - ./user-service/.env
+#     depends_on:
+#       - postgres
+#       - redis
+
+#   payment-service:
+#     build: ./payment-service
+#     ports:
+#       - "3002"
+#     env_file:
+#       - .env
+#     depends_on:
+#       - postgres
+#       - redis
+
+# volumes:
+#   postgres_data:
+#   redis_data:
+
+services:
+  postgres-user:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${USER_DB}
+    volumes:
+      - postgres_user_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d user_db" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  postgres-payment:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${PAYMENT_DB}
+    volumes:
+      - postgres_payment_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d payment_db" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  user-service:
+    build: ./user-service
+    env_file:
+      - .env
+      - ./user-service/.env
+    depends_on:
+      postgres-user:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  payment-service:
+    build: ./payment-service
+    env_file:
+      - .env
+      - ./payment-service/.env
+    depends_on:
+      postgres-payment:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  gateway:
+    build: ./gateway
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    depends_on:
+      - user-service
+      - payment-service
+
+volumes:
+  postgres_user_data:
+  postgres_payment_data:
+  redis_data:

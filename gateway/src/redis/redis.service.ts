@@ -8,8 +8,8 @@ export class RedisService implements OnModuleInit {
     private client: RedisClientType;
 
     constructor(private configService: ConfigService) {
-        const redisUrl = this.configService.get<string>('REDIS_URL');
-        this.client = createClient({ url: redisUrl })
+        const redisUrl = this.configService.get<string>('REDIS_URL') ?? 'redis://localhost:6379';
+        this.client = createClient({ url: redisUrl , })
         this.client.on("error", (err) => {
             console.error(err)
         })

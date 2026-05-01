@@ -5,7 +5,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { EncryptionService } from './encrypt.service';
 import { Redis } from 'ioredis';
 import * as crypto from 'crypto';
-import { TokenService } from './token.service';
+
 import * as bcrypt from 'bcrypt';
 
 
@@ -19,7 +19,6 @@ export class UserService {
     constructor(
         private readonly prisma: PrismaService,
         private readonly encryption: EncryptionService,
-        private readonly tokenService: TokenService,
         @Inject('REDIS_CLIENT') private readonly redis: Redis,
     ) { }
 
@@ -76,20 +75,6 @@ export class UserService {
         const stored: { otpHash: string; payload: CreateUserPayload; attempts: number } =
             JSON.parse(raw);
 
-
-        // Wrong OTP → increment attempt counter, keep remaining TTL
-        // if (stored.otp !== dto.otp) {
-        //     const ttl = await this.redis.ttl(otpKey);
-        //     await this.redis.set(otpKey, JSON.stringify(stored), 'EX', ttl);
-
-        //     throw new RpcException({
-        //         statusCode: 400,
-        //         error: 'INVALID_OTP',
-        //         message: `Invalid OTP.`,
-        //     });
-        // }
-
-
         const isOtpValid = await bcrypt.compare(dto.otp, stored.otpHash);
 
 
@@ -122,14 +107,8 @@ export class UserService {
             },
         });
 
-        const accessToken = await this.tokenService.generateAccessToken(
-            user.id,
-            user.email,
-        );
-
         return {
             user: this.formatUser(user),
-            accessToken,
         };
     }
 
@@ -160,10 +139,6 @@ export class UserService {
             });
         }
 
-        // const accessToken = await this.tokenService.generateAccessToken(
-        //     user.id,
-        //     user.email,
-        // );
 
         return {
             user: this.formatUser(user),

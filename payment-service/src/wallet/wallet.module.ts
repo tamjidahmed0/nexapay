@@ -6,12 +6,13 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
 import { MICROSERVICE } from 'src/constants/constants';
 
 @Module({
-  imports : [
+  imports: [
     ClientsModule.register([
       {
         name: MICROSERVICE.USER_SERVICE,
         transport: Transport.TCP,
         options: {
+          host: 'user-service',
           port: 3001
         }
       },
@@ -21,4 +22,4 @@ import { MICROSERVICE } from 'src/constants/constants';
   providers: [WalletService],
   controllers: [WalletController]
 })
-export class WalletModule {}
+export class WalletModule { }
