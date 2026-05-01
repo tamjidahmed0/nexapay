@@ -139,6 +139,36 @@ export class WalletService {
     }
 
 
+    async getPrimaryBalance(userId: string) {
+
+        const wallet = await this.prisma.wallet.findFirst({
+            where: { userId, currency: "BDT" },
+            select: {
+                id: true,
+                userId: true,
+                currency: true,
+                balance: true,
+                isActive: true,
+                updatedAt: true,
+            },
+        });
+
+        if (!wallet) {
+            throw new RpcException({ statusCode: 404, error: 'WALLET_NOT_FOUND', message: `Wallet not found.` });
+        }
+
+        return {
+            walletId: wallet.id,
+            userId: wallet.userId,
+            currency: wallet.currency,
+            balance: wallet.balance.toString(),
+            isActive: wallet.isActive,
+            asOf: wallet.updatedAt,
+        };
+
+    }
+
+
 
 
 

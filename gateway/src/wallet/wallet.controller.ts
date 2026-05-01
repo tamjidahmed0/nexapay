@@ -26,6 +26,14 @@ export class WalletController {
         return this.paymentClient.send('get-wallets', userId)
     }
 
+
+    @Get('primary')
+    @UseGuards(SessionAuthGuard)
+    async getPrimaryBalance(@Req() req) {
+        const userId = req.userId;
+        return this.paymentClient.send('get-primary-balance', { userId })
+    }
+
     @Get('get-wallet/:walletId')
     @UseGuards(SessionAuthGuard)
     async getWallet(@Param('walletId') walletId, @Req() req) {

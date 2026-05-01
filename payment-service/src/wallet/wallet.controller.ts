@@ -21,7 +21,7 @@ export class WalletController {
     }
 
     @MessagePattern('get-wallet')
-    async getWallet(@Payload() {walletId , userId}) {
+    async getWallet(@Payload() { walletId, userId }) {
         return this.wallet.getWallet(walletId, userId)
     }
 
@@ -33,6 +33,11 @@ export class WalletController {
     @MessagePattern('get-balance')
     async getBalance(@Payload() { walletId, userId }) {
         return this.wallet.getBalance(walletId, userId)
+    }
+
+    @MessagePattern('get-primary-balance')
+    async getPrimaryBalance(@Payload() { userId }) {
+        return this.wallet.getPrimaryBalance(userId)
     }
 
 
