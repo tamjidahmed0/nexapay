@@ -23,6 +23,7 @@ async function bootstrap() {
   const store = new RedisStore({
     client: redisClient,
     prefix: 'session:nexapay:',
+    disableTouch: true
   });
  
 

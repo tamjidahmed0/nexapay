@@ -166,7 +166,6 @@ export class UserService {
 
 
     async getUsersByIds(data: { ids: string[] }) {
-        console.log(data)
         const users = await this.prisma.user.findMany({
             where: { id: { in: data.ids } },
             select: { id: true, nameEncrypted: true },
