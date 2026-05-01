@@ -23,11 +23,9 @@ export class TransactionService {
 
     async createInternalTransfer(
         dto: CreateInternalTransferPayload,
-        userId: string,
-        senderWalletId: string
+        userId: string
     ) {
 
-        console.log(userId)
         // Idempotency check
         const idempotencyResult = await this.idempotency.acquireOrReplay(
             dto.idempotencyKey,
@@ -52,6 +50,8 @@ export class TransactionService {
             );
 
 
+
+
             const isUSerExist = await firstValueFrom(
                 this.accountClient.send('user-exists', { userId }),
             )
@@ -59,7 +59,6 @@ export class TransactionService {
 
 
             if (!isUSerExist) {
-                console.log('sender not found')
                 throw new RpcException({
                     statusCode: 404,
                     error: 'SENDER_USER_NOT_FOUND',
@@ -80,7 +79,7 @@ export class TransactionService {
 
 
             const [senderWallet, recipientWallet] = await Promise.all([
-                this.prisma.wallet.findUnique({ where: { id: senderWalletId } }),
+                this.prisma.wallet.findFirst({ where: { userId } }),
                 this.prisma.wallet.findFirst({
                     where: {
                         userId: recipient.id,
@@ -89,6 +88,7 @@ export class TransactionService {
                 }),
             ]);
 
+            
 
 
             if (!senderWallet) {
@@ -137,7 +137,7 @@ export class TransactionService {
                 });
             }
 
-            if (senderWalletId === recipientWallet.id) {
+            if (senderWallet.id === recipientWallet.id) {
                 throw new RpcException({
                     statusCode: 400,
                     error: 'SELF_TRANSFER_NOT_ALLOWED',
@@ -149,7 +149,7 @@ export class TransactionService {
 
             const completed = await this.transferExecutor.execute({
                 type: 'INTERNAL_TRANSFER',
-                senderWalletId,
+                senderWalletId: senderWallet.id,
                 senderUserId: userId,
                 recipientWalletId: recipientWallet.id,
                 recipientUserId: recipient.id,
@@ -357,6 +357,8 @@ export class TransactionService {
         const items = hasNextPage ? transactions.slice(0, limit) : transactions;
 
 
+
+
         const userIds = [
             ...new Set(
                 items.flatMap((tx) =>
@@ -370,22 +372,8 @@ export class TransactionService {
             this.accountClient.send('get_users_by_ids', { ids: userIds }),
         );
 
-        const userMap = new Map(users.map((u) => [u.id, u.name]));
 
-        // return {
-        //     items: items.map((tx) => ({
-        //         ...this.formatTransaction(tx),
-        //         isCredit: tx.recipientUserId === userId,
-        //         senderName: tx.senderUserId === userId
-        //             ? 'You'
-        //             : (userMap.get(tx.senderUserId) ?? 'Unknown'),
-        //         recipientName: tx.recipientUserId === userId
-        //             ? 'You'
-        //             : (userMap.get(tx.recipientUserId) ?? 'Unknown'),
-        //     })),
-        //     nextCursor: hasNextPage ? items[items.length - 1].id : null,
-        //     hasNextPage,
-        // };
+        const userMap = new Map(users.map((u) => [u.id, u.name]));
 
         return {
             items: items.map((tx) => {

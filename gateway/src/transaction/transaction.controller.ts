@@ -14,11 +14,11 @@ export class TransactionController {
 
 
 
-    @Post('internal/:walletId')
+    @Post('internal')
     @UseGuards(SessionAuthGuard)
-    async createInternalTransaction(@Body() dto: CreateInternalTransferDto, @Req() req, @Param('walletId') senderWalletId) {
+    async createInternalTransaction(@Body() dto: CreateInternalTransferDto, @Req() req) {
         const userId = req.userId;
-        return this.paymentClient.send('create-internal-transfer', { userId, senderWalletId, ...dto })
+        return this.paymentClient.send('create-internal-transfer', { userId, ...dto })
     }
 
     @Post('international')

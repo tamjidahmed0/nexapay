@@ -12,7 +12,7 @@ import { MICROSERVICE } from 'src/constants/constants';
         name: MICROSERVICE.USER_SERVICE,
         transport: Transport.TCP,
         options: {
-          host: 'user-service',
+          // host: 'user-service',
           port: 3001
         }
       },
