@@ -32,5 +32,16 @@ export class TransactionController {
         return this.transactionService.getTransaction(transactionId)
     }
 
+    
+    @MessagePattern('preview_transfer')
+    async previewTransfer(@Payload() dto: {
+        amount: number;
+        currency?: string;
+        recipientIdentifier: string;
+        userId: string;
+    }) {
+        return this.transactionService.previewTransfer(dto);
+    }
+
 
 }

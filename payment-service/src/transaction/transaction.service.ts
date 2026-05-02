@@ -8,6 +8,7 @@ import { CreateInternationalTransfer } from './interface/international-transfer'
 import { MICROSERVICE } from 'src/constants/constants';
 import { firstValueFrom } from 'rxjs';
 import { getCurrencySymbol } from 'src/utils/currency.util';
+import { FeeService } from './fee.service';
 
 @Injectable()
 export class TransactionService {
@@ -16,6 +17,7 @@ export class TransactionService {
         private readonly idempotency: IdempotencyService,
         private prisma: PrismaService,
         private readonly transferExecutor: TransferExecutor,
+        private readonly feeService: FeeService,
         @Inject(MICROSERVICE.USER_SERVICE) private accountClient: ClientProxy,
         @Inject(MICROSERVICE.NOTIFICATION_SERVICE) private notificationClient: ClientProxy,
     ) { }
@@ -158,7 +160,7 @@ export class TransactionService {
                 const sender = users.find((u: any) => u.id === completed.senderUserId);
                 const recipient = users.find((u: any) => u.id === completed.recipientUserId);
 
-                // Recipient কে notification পাঠাও
+
                 if (recipient?.fcmToken) {
                     await firstValueFrom(
                         this.notificationClient.send('send_notification', {
@@ -440,6 +442,52 @@ export class TransactionService {
         }
 
         return this.formatTransaction(transaction);
+    }
+
+
+    async previewTransfer(dto: {
+        amount: number;
+        currency?: string;
+        recipientIdentifier: string;
+        userId: string;
+    }) {
+
+        const currency = dto.currency ?? 'BDT';
+
+        const recipient = await firstValueFrom(
+            this.accountClient.send('find_user_by_identifier', {
+                identifier: dto.recipientIdentifier,
+            })
+        );
+
+        if (!recipient) {
+            throw new RpcException({
+                statusCode: 404,
+                error: 'RECIPIENT_NOT_FOUND',
+                message: 'No user found with this identifier',
+            });
+        }
+
+        if (recipient.id === dto.userId) {
+            throw new RpcException({
+                statusCode: 400,
+                error: 'SELF_TRANSFER_NOT_ALLOWED',
+                message: 'Cannot send money to yourself',
+            });
+        }
+
+        const fee = this.feeService.calculateFee('INTERNAL', dto.amount, currency);
+
+        return {
+            recipient: {
+                name: recipient.name,
+                identifier: dto.recipientIdentifier,
+            },
+            amount: dto.amount,
+            currency: currency,
+            fee: fee.feeAmount,
+            totalDeducted: dto.amount + fee.feeAmount,
+        };
     }
 
 

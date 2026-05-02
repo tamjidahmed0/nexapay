@@ -30,6 +30,21 @@ export class TransactionController {
     }
 
 
+    @Post('preview')
+    @UseGuards(SessionAuthGuard)
+    async previewTransfer(
+        @Body() body: { amount: number; currency?: string; recipientIdentifier: string },
+        @Req() req
+    ) {
+        const userId = req.userId;
+        return this.paymentClient.send('preview_transfer', {
+            ...body,
+            userId
+        })
+
+    }
+
+
     @Get('user')
     @UseGuards(SessionAuthGuard)
     getUserTransactions(
