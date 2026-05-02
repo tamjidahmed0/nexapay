@@ -12,7 +12,6 @@ import { UserLoginDto } from './dto/login.dto';
 export class UserController {
     constructor(
         @Inject(MICROSERVICE.USER_SERVICE) private readonly userClient: ClientProxy,
-        @Inject('NOTIFICATION_SERVICE') private readonly notificationClient: ClientProxy,
     ) { }
 
 
