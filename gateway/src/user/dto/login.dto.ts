@@ -1,4 +1,4 @@
-import { IsEmail, IsString, IsOptional, MinLength } from 'class-validator';
+import { IsEmail, IsString, IsOptional } from 'class-validator';
 
 export class UserLoginDto {
   @IsEmail()
@@ -6,4 +6,8 @@ export class UserLoginDto {
 
   @IsString()
   password!: string;
+
+  @IsOptional()
+  @IsString()
+  fcmToken?: string
 }

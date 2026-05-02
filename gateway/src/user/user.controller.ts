@@ -2,19 +2,17 @@ import { Body, Controller, HttpException, Inject, Post, Req, Session } from '@ne
 import { ClientProxy } from '@nestjs/microservices';
 import { MICROSERVICE } from 'src/constants/constants';
 import { CreateAccountDto } from './dto/create-account.dto';
-import { catchError, firstValueFrom } from 'rxjs';
+import { firstValueFrom } from 'rxjs';
 import { UserLoginDto } from './dto/login.dto';
-import { Redis } from 'ioredis';
-import * as crypto from 'crypto';
-import session from 'express-session';
 
 
-const SESSION_TTL = 60 * 60 * 24;
+
 
 @Controller('user')
 export class UserController {
     constructor(
         @Inject(MICROSERVICE.USER_SERVICE) private readonly userClient: ClientProxy,
+        @Inject('NOTIFICATION_SERVICE') private readonly notificationClient: ClientProxy,
     ) { }
 
 
@@ -62,7 +60,6 @@ export class UserController {
         }
 
     }
-
 
 
 

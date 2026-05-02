@@ -15,4 +15,5 @@ export interface VerifyOtpPayload {
 export interface LoginPayload {
   email: string;
   password: string;
+  fcmToken?: string
 }

@@ -139,18 +139,20 @@ export class UserService {
             });
         }
 
+        await this.prisma.user.update({
+            where: {
+                id: user.id
+            },
+            data: {
+                fcmToken: dto.fcmToken
+            }
+        })
+
 
         return {
             user: this.formatUser(user),
         };
     }
-
-
-
-
-
-
-
 
 
 
@@ -168,12 +170,13 @@ export class UserService {
     async getUsersByIds(data: { ids: string[] }) {
         const users = await this.prisma.user.findMany({
             where: { id: { in: data.ids } },
-            select: { id: true, nameEncrypted: true },
+            select: { id: true, nameEncrypted: true, fcmToken:true },
         });
 
         return users.map((u) => ({
             id: u.id,
             name: this.encryption.decrypt(u.nameEncrypted),
+            fcmToken: u.fcmToken
         }));
     }
 
@@ -203,6 +206,8 @@ export class UserService {
             email: user.email,
         };
     }
+
+
 
 
 

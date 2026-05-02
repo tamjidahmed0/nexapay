@@ -5,6 +5,8 @@ import { TransactionModule } from './transaction/transaction.module';
 import { ConfigModule } from '@nestjs/config';
 import { FxModule } from './fx/fx.module';
 import { RedisModule } from './redis/redis.module';
+import { ClientsModule, Transport } from '@nestjs/microservices';
+import { MICROSERVICE } from './constants/constants';
 
 
 
@@ -12,6 +14,28 @@ import { RedisModule } from './redis/redis.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    ClientsModule.register({
+      isGlobal: true,
+      clients: [
+        {
+          name: MICROSERVICE.USER_SERVICE,
+          transport: Transport.TCP,
+          options: {
+            // host: 'user-service',
+            port: 3001
+          }
+        },
+        {
+          name: MICROSERVICE.NOTIFICATION_SERVICE,
+          transport: Transport.RMQ,
+          options: {
+            urls: [process.env.RABBITMQ_URL || ''],
+            queue: 'notification_queue',
+            queueOptions: { durable: true },
+          },
+        },
+      ]
+    }),
     PrismaModule,
     WalletModule,
     TransactionModule,

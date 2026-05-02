@@ -33,6 +33,7 @@ import { ConfigModule } from '@nestjs/config';
           port: 3002
         }
       }
+
     ]),
     RedisModule
   ],

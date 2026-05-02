@@ -20,6 +20,7 @@ model User {
   nameEncrypted       String
   phoneEncrypted      String?
   nationalIdEncrypted String?
+  fcmToken            String?
   encryptionKeyId     String
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt

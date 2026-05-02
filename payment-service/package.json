@@ -27,6 +27,8 @@
     "@nestjs/platform-express": "^11.0.1",
     "@prisma/adapter-pg": "^7.7.0",
     "@prisma/client": "^7.7.0",
+    "amqp-connection-manager": "^5.0.0",
+    "amqplib": "^1.0.3",
     "bullmq": "^5.74.1",
     "i": "^0.3.7",
     "ioredis": "^5.10.1",

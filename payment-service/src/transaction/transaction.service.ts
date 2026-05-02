@@ -17,6 +17,7 @@ export class TransactionService {
         private prisma: PrismaService,
         private readonly transferExecutor: TransferExecutor,
         @Inject(MICROSERVICE.USER_SERVICE) private accountClient: ClientProxy,
+        @Inject(MICROSERVICE.NOTIFICATION_SERVICE) private notificationClient: ClientProxy,
     ) { }
 
 
@@ -87,7 +88,7 @@ export class TransactionService {
                 }),
             ]);
 
-            
+
 
 
             if (!senderWallet) {
@@ -142,6 +143,32 @@ export class TransactionService {
                 currency: "BDT",
                 metadata: dto.note ? { note: dto.note } : undefined,
             });
+
+
+
+
+
+            if (completed) {
+                const users = await firstValueFrom(
+                    this.accountClient.send('get_users_by_ids', {
+                        ids: [completed.senderUserId, completed.recipientUserId]
+                    })
+                );
+
+                const sender = users.find((u: any) => u.id === completed.senderUserId);
+                const recipient = users.find((u: any) => u.id === completed.recipientUserId);
+
+                // Recipient কে notification পাঠাও
+                if (recipient?.fcmToken) {
+                    await firstValueFrom(
+                        this.notificationClient.send('send_notification', {
+                            fcmToken: recipient.fcmToken,
+                            title: 'Money Received',
+                            body: `You received ${completed.amount} ${completed.currency} from ${sender?.name}`,
+                        })
+                    );
+                }
+            }
 
 
             const response = this.formatTransaction(completed);
