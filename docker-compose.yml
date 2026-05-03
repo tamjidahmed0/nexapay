@@ -91,6 +91,7 @@ services:
       - "3000:3000"
     env_file:
       - .env
+      - ./gateway/.env
     depends_on:
       - user-service
       - payment-service
