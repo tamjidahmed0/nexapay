@@ -21,7 +21,7 @@ import { MICROSERVICE } from './constants/constants';
           name: MICROSERVICE.USER_SERVICE,
           transport: Transport.TCP,
           options: {
-            host: process.env.USER_SERVICE_HOST ?? '0.0.0.0',
+            host: process.env.USER_SERVICE_HOST || '0.0.0.0',
             port: 3001
           }
         },

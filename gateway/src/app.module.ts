@@ -21,7 +21,7 @@ import { ConfigModule } from '@nestjs/config';
         name: MICROSERVICE.USER_SERVICE,
         transport: Transport.TCP,
         options: {
-          host: process.env.USER_SERVICE_HOST ?? '0.0.0.0',
+          host: process.env.USER_SERVICE_HOST || '0.0.0.0',
           port: 3001
         }
       },
@@ -29,7 +29,7 @@ import { ConfigModule } from '@nestjs/config';
         name: MICROSERVICE.PAYMENT_SERVICE,
         transport: Transport.TCP,
         options: {
-          host: process.env.PAYMENT_SERVICE_HOST ?? '0.0.0.0',
+          host: process.env.PAYMENT_SERVICE_HOST || '0.0.0.0',
           port: 3002
         }
       }
