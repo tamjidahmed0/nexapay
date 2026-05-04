@@ -124,14 +124,13 @@ Shared Infrastructure
 | `POST` | `/transaction/preview` | Preview transfer — returns fee, recipient info, total deducted |
 | `POST` | `/transaction/internal` | Execute internal P2P transfer |
 | `GET` | `/transaction/user` | Get paginated transaction history |
-| `GET` | `/transaction/:id` | Get a single transaction by ID |
+| `GET` | `/transaction/:id` | Get a single transaction by TransactionID |
 
 #### POST `/transaction/preview`
 ```json
 {
   "amount": 500,
   "recipientIdentifier": "recipient@example.com",
-  "currency": "BDT"
 }
 ```
 Response:
@@ -152,7 +151,6 @@ Response:
 ```json
 {
   "amount": 500,
-  "currency": "BDT",
   "recipientIdentifier": "recipient@example.com",
   "idempotencyKey": "unique-uuid-v4",
   "note": "Lunch money"
@@ -221,8 +219,13 @@ Fill in credentials in each `.env` file.
 ```bash
 docker compose up -d --build
 ```
+Migrations:
 
-Migrations run automatically on startup via `entrypoint.sh` in each service.
+```
+docker compose run user-service npx prisma migrate deploy
+docker compose run payment-service npx prisma migrate deploy
+
+```
 
 ### 4. Verify
 
