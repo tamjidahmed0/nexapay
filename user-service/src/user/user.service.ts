@@ -1,12 +1,14 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { CreateUserPayload, LoginPayload, VerifyOtpPayload } from './interface/interface';
-import { RpcException } from '@nestjs/microservices';
+import { ClientProxy, RpcException } from '@nestjs/microservices';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { EncryptionService } from './encrypt.service';
 import { Redis } from 'ioredis';
 import * as crypto from 'crypto';
 
 import * as bcrypt from 'bcrypt';
+import { MICROSERVICE } from 'src/constants/constants';
+import { firstValueFrom } from 'rxjs';
 
 
 const OTP_TTL_SECONDS = 300;       // 5 min
@@ -20,6 +22,7 @@ export class UserService {
         private readonly prisma: PrismaService,
         private readonly encryption: EncryptionService,
         @Inject('REDIS_CLIENT') private readonly redis: Redis,
+        @Inject(MICROSERVICE.NOTIFICATION_SERVICE) private notificationClient: ClientProxy,
     ) { }
 
 
@@ -51,6 +54,14 @@ export class UserService {
             }),
             'EX',
             OTP_TTL_SECONDS,
+        );
+
+        await firstValueFrom(
+            this.notificationClient.send('send_otp_mail', {
+                to: dto.email,
+                name: dto.name,
+                otp: otp
+            })
         );
 
         console.log(`[OTP] ${dto.email} → ${otp}`);
@@ -170,7 +181,7 @@ export class UserService {
     async getUsersByIds(data: { ids: string[] }) {
         const users = await this.prisma.user.findMany({
             where: { id: { in: data.ids } },
-            select: { id: true, nameEncrypted: true, fcmToken:true },
+            select: { id: true, nameEncrypted: true, fcmToken: true },
         });
 
         return users.map((u) => ({

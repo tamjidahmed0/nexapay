@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+<title>NexaPay — Verify your account</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background-color: #F0F2F8;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    padding: 40px 16px;
+  }
+  .wrapper {
+    max-width: 520px;
+    margin: 0 auto;
+  }
+
+  /* Header */
+  .header {
+    text-align: center;
+    margin-bottom: 24px;
+  }
+  .logo-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .logo-icon {
+    width: 40px;
+    height: 40px;
+    background: #1A1F5E;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .logo-name {
+    font-size: 20px;
+    font-weight: 800;
+    color: #1A1F5E;
+    letter-spacing: -0.4px;
+  }
+
+  /* Card */
+  .card {
+    background: #ffffff;
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: 0 2px 24px rgba(26, 31, 94, 0.08);
+  }
+
+  /* Card top stripe */
+  .card-stripe {
+    height: 6px;
+    background: linear-gradient(90deg, #1A1F5E 0%, #4F5BD5 100%);
+  }
+
+  /* Card body */
+  .card-body {
+    padding: 40px 40px 36px;
+  }
+
+  /* Greeting */
+  .greeting {
+    font-size: 22px;
+    font-weight: 800;
+    color: #1A1F5E;
+    letter-spacing: -0.4px;
+    margin-bottom: 8px;
+  }
+  .subtext {
+    font-size: 14px;
+    color: #9094A6;
+    line-height: 1.6;
+    margin-bottom: 32px;
+  }
+
+  /* OTP Box */
+  .otp-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #9094A6;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .otp-box {
+    background: #F4F6FA;
+    border: 1.5px solid #E2E5F1;
+    border-radius: 16px;
+    padding: 24px;
+    text-align: center;
+    margin-bottom: 12px;
+  }
+  .otp-code {
+    font-size: 42px;
+    font-weight: 800;
+    color: #1A1F5E;
+    letter-spacing: 10px;
+    font-variant-numeric: tabular-nums;
+  }
+  .otp-expiry {
+    font-size: 13px;
+    color: #9094A6;
+    margin-bottom: 32px;
+  }
+  .otp-expiry strong {
+    color: #E07B39;
+    font-weight: 700;
+  }
+
+  /* Divider */
+  .divider {
+    height: 1px;
+    background: #F0F1F7;
+    margin: 28px 0;
+  }
+
+  /* Security note */
+  .security-box {
+    background: #FFF8E1;
+    border: 1px solid #FFE082;
+    border-radius: 12px;
+    padding: 14px 16px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    margin-bottom: 28px;
+  }
+  .security-icon {
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .security-text {
+    font-size: 13px;
+    color: #8B5E0A;
+    line-height: 1.5;
+  }
+  .security-text strong {
+    font-weight: 700;
+    display: block;
+    margin-bottom: 2px;
+  }
+
+  /* CTA Button */
+  .btn-wrap {
+    text-align: center;
+    margin-bottom: 28px;
+  }
+  .btn {
+    display: inline-block;
+    background: #1A1F5E;
+    color: #ffffff !important;
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 700;
+    padding: 14px 40px;
+    border-radius: 14px;
+    letter-spacing: 0.2px;
+  }
+
+  /* Help text */
+  .help-text {
+    font-size: 13px;
+    color: #9094A6;
+    text-align: center;
+    line-height: 1.6;
+  }
+  .help-text a {
+    color: #4F5BD5;
+    text-decoration: none;
+    font-weight: 600;
+  }
+
+  /* Footer */
+  .footer {
+    text-align: center;
+    margin-top: 28px;
+    padding: 0 20px;
+  }
+  .footer-logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .footer-icon {
+    width: 26px;
+    height: 26px;
+    background: #1A1F5E;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .footer-name {
+    font-size: 14px;
+    font-weight: 800;
+    color: #1A1F5E;
+  }
+  .footer-text {
+    font-size: 12px;
+    color: #B0B4CA;
+    line-height: 1.6;
+    margin-bottom: 12px;
+  }
+  .footer-links {
+    font-size: 12px;
+  }
+  .footer-links a {
+    color: #9094A6;
+    text-decoration: none;
+    margin: 0 8px;
+  }
+  .footer-links a:hover {
+    color: #4F5BD5;
+  }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <!-- Logo header -->
+  <div class="header">
+    <div class="logo-wrap">
+      <div class="logo-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <path d="M13 2L4.09 12.11A2 2 0 004 13v7a2 2 0 002 2h12a2 2 0 002-2v-7a2 2 0 00-.09-.89L11 2" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M12 22V12" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <span class="logo-name">NexaPay</span>
+    </div>
+  </div>
+
+  <!-- Main card -->
+  <div class="card">
+    <div class="card-stripe"></div>
+    <div class="card-body">
+
+      <p class="greeting">Hi {{name}},</p>
+      <p class="subtext">
+        You requested to verify your NexaPay account. Use the code below to complete your verification. This code is valid for a limited time.
+      </p>
+
+      <p class="otp-label">Your verification code</p>
+      <div class="otp-box">
+        <div class="otp-code">{{otp}}</div>
+      </div>
+      <p class="otp-expiry">This code expires in <strong>{{expiryMinutes}} minutes</strong></p>
+
+      <div class="divider"></div>
+
+      <!-- Security note -->
+      <div class="security-box">
+        <div class="security-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="10" stroke="#E07B39" stroke-width="2"/>
+            <path d="M12 8v4M12 16h.01" stroke="#E07B39" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="security-text">
+          <strong>Never share this code</strong>
+          NexaPay will never ask for your OTP via phone, email, or chat. If you didn't request this, please ignore this email or contact our support team immediately.
+        </div>
+      </div>
+
+      <div class="help-text">
+        Having trouble? <a href="mailto:{{supportEmail}}">Contact support</a>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <div class="footer-logo">
+      <div class="footer-icon">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+          <path d="M13 2L4.09 12.11A2 2 0 004 13v7a2 2 0 002 2h12a2 2 0 002-2v-7a2 2 0 00-.09-.89L11 2" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M12 22V12" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <span class="footer-name">NexaPay</span>
+    </div>
+    <p class="footer-text">
+      Secure. Fast. Simple.<br/>
+      This email was sent to {{email}}. If you did not create a NexaPay account, you can safely ignore this email.
+    </p>
+    <div class="footer-links">
+      <a href="#">Privacy Policy</a>
+      <a href="#">Terms of Service</a>
+      <a href="#">Help Center</a>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

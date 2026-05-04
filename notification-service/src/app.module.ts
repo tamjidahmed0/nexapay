@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { NotificationModule } from './notification/notification.module';
 import { ConfigModule } from '@nestjs/config';
 import { ClientsModule, Transport } from '@nestjs/microservices';
+import { MailModule } from './mail/mail.module';
 
 
 @Module({ 
@@ -18,6 +19,7 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
         },
       },
     ]),
-    NotificationModule]
+    NotificationModule,
+    MailModule]
 })
 export class AppModule { }
