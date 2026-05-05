@@ -4,6 +4,9 @@ import { MICROSERVICE } from 'src/constants/constants';
 import { CreateAccountDto } from './dto/create-account.dto';
 import { firstValueFrom } from 'rxjs';
 import { UserLoginDto } from './dto/login.dto';
+import { ForgotPassword } from './dto/forgot-password.dto';
+import { VerifyResetOtp } from './dto/verify-reset-otp';
+import { ResetPassword } from './dto/reset-password.dto';
 
 
 
@@ -58,6 +61,28 @@ export class UserController {
             message: 'Login successful',
         }
 
+    }
+
+
+
+    @Post('forgot-password')
+    async forgotPassword(@Body() dto: ForgotPassword) {
+        const result = await firstValueFrom(this.userClient.send('forgot-password', dto));
+        return result
+    }
+
+
+    @Post('forgot-password/verify-otp')
+    async verifyResetOtp(@Body() dto: VerifyResetOtp) {
+        const result = await firstValueFrom(this.userClient.send('verify-reset-otp', dto));
+        return result
+    }
+
+
+    @Post('forgot-password/reset')
+    async resetPassword(@Body() dto: ResetPassword) {
+        const result = await firstValueFrom(this.userClient.send('reset-password', dto));
+        return result
     }
 
 

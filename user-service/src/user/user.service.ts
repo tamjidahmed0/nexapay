@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { CreateUserPayload, LoginPayload, VerifyOtpPayload } from './interface/interface';
+import { CreateUserPayload, ForgotPassword, LoginPayload, PassResetOtp, VerifyOtpPayload } from './interface/interface';
 import { ClientProxy, RpcException } from '@nestjs/microservices';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { EncryptionService } from './encrypt.service';
@@ -59,6 +59,8 @@ export class UserService {
         await firstValueFrom(
             this.notificationClient.send('send_otp_mail', {
                 to: dto.email,
+                subject: 'NexaPay Verification Code',
+                template: 'otp',
                 name: dto.name,
                 otp: otp
             })
@@ -83,7 +85,7 @@ export class UserService {
             });
         }
 
-        const stored: { otpHash: string; payload: CreateUserPayload; attempts: number } =
+        const stored: { otpHash: string; payload: CreateUserPayload } =
             JSON.parse(raw);
 
         const isOtpValid = await bcrypt.compare(dto.otp, stored.otpHash);
@@ -121,6 +123,121 @@ export class UserService {
         return {
             user: this.formatUser(user),
         };
+    }
+
+
+    async forgotPassword(dto: ForgotPassword) {
+        const existing = await this.prisma.user.findUnique({
+            where: { email: dto.email },
+        });
+
+        if (!existing) {
+            throw new RpcException({
+                statusCode: 409,
+                error: 'EMAIL_NOT_EXISTS',
+                message: `An account with email ${dto.email} not exists.`,
+            });
+        }
+
+        const otpKey = `otp:forgot:${dto.email}`;
+
+        const otp = this.generateOtp();
+        const otpHash = await bcrypt.hash(otp, 10);
+
+        await this.redis.set(
+            otpKey,
+            JSON.stringify({
+                otpHash,
+                payload: { ...dto },
+            }),
+            'EX',
+            OTP_TTL_SECONDS,
+        );
+
+        await firstValueFrom(
+            this.notificationClient.send('send_otp_mail', {
+                to: dto.email,
+                subject: 'Reset your NexaPay password',
+                template: 'forgot-password',
+                name: this.encryption.decrypt(existing.nameEncrypted),
+                otp: otp
+            })
+        );
+
+        console.log(`[OTP] ${dto.email} → ${otp}`);
+
+        return { message: 'OTP sent. Verify within 5 minutes.', email: dto.email };
+    }
+
+
+
+
+    async verifyResetOtp(dto: PassResetOtp) {
+        const otpKey = `otp:forgot:${dto.email}`;
+        const raw = await this.redis.get(otpKey);
+
+        if (!raw) {
+            throw new RpcException({
+                statusCode: 404,
+                error: 'OTP_NOT_FOUND',
+                message: 'OTP expired or never issued.',
+            });
+        }
+
+        const stored: { otpHash: string } = JSON.parse(raw);
+
+        const isOtpValid = await bcrypt.compare(dto.otp, stored.otpHash);
+
+
+        if (!isOtpValid) {
+            const ttl = await this.redis.ttl(otpKey);
+            await this.redis.set(otpKey, JSON.stringify(stored), 'EX', ttl);
+
+            throw new RpcException({
+                statusCode: 400,
+                error: 'INVALID_OTP',
+                message: `Invalid OTP.`,
+            });
+        }
+
+
+        await this.redis.del(otpKey);
+
+
+        const resetToken = crypto.randomUUID();
+        await this.redis.set(
+            `reset:${resetToken}`,
+            dto.email,
+            'EX',
+            600, // 10 min
+        );
+        return { resetToken };
+
+
+    }
+
+
+    async resetPassword(dto: { resetToken: string; newPassword: string }) {
+        const email = await this.redis.get(`reset:${dto.resetToken}`);
+
+        if (!email) {
+            throw new RpcException({
+                statusCode: 400,
+                error: 'INVALID_RESET_TOKEN',
+                message: 'Reset token expired or invalid.',
+            });
+        }
+
+        const hashed = await bcrypt.hash(dto.newPassword, 12);
+
+        await this.prisma.user.update({
+            where: { email },
+            data: { password: hashed },
+        });
+
+        await this.redis.del(`reset:${dto.resetToken}`);
+
+        return { message: 'Password reset successful.' };
     }
 
 

@@ -46,5 +46,21 @@ export class UserController {
         return user
     }
 
+    @MessagePattern('forgot-password')
+    async forgotPassword(@Payload() data) {
+        return await this.userService.forgotPassword(data)
+    }
+
+    @MessagePattern('verify-reset-otp')
+    async verifyResetOtp(@Payload() dto) {
+        return await this.userService.verifyResetOtp(dto)
+    }
+
+
+    @MessagePattern('reset-password')
+    async resetPassword(@Payload() dto) {
+        return await this.userService.resetPassword(dto)
+    }
+
 
 }

@@ -6,12 +6,12 @@ import { MailerService } from '@nestjs-modules/mailer';
 export class OtpMailService {
     constructor(private mailerService: MailerService) { }
 
-    async sendOtpEmail(dto: { to: string, name: string, otp: string }) {
+    async sendOtpEmail(dto: { to: string, name: string, otp: string, subject: string, template:string }) {
         await this.mailerService.sendMail({
             to: dto.to,
             from: `"NexaPay" ${dto.to}`,
-            subject: 'NexaPay Verification Code',
-            template: 'otp',
+            subject: dto.subject,
+            template: dto.template,
             context: {
                 name: dto.name,
                 otp: dto.otp,

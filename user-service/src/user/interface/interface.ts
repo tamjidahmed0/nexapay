@@ -17,3 +17,12 @@ export interface LoginPayload {
   password: string;
   fcmToken?: string
 }
+
+export interface ForgotPassword {
+  email: string;
+}
+
+export interface PassResetOtp {
+  email: string;
+  otp: string;
+}
