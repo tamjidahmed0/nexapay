@@ -4,7 +4,7 @@ import { OtpMailService } from './otpMail.service';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { HandlebarsAdapter } from '@nestjs-modules/mailer/adapters/handlebars.adapter';
 import { ConfigService } from '@nestjs/config';
-
+import { join } from 'path';
 
 @Module({
   imports: [
@@ -21,7 +21,8 @@ import { ConfigService } from '@nestjs/config';
           },
         },
         template: {
-          dir: process.cwd() + '/src/mail/templates',
+          // dir: process.cwd() + '/src/mail/templates',
+          dir: join(__dirname, 'templates'),
           adapter: new HandlebarsAdapter(),
         },
       }),
