@@ -62,6 +62,9 @@ Shared Infrastructure
 | `POST` | `/user/create` | ✗ | Register a new user |
 | `POST` | `/user/verify-otp` | ✗ | Verify OTP and activate account |
 | `POST` | `/user/login` | ✗ | Login and create session |
+| `POST` | `/user/forgot-password` | ✗ | Request password reset OTP |
+| `POST` | `/user/forgot-password/verify-otp` | ✗ | Verify reset OTP, returns resetToken |
+| `POST` | `/user/forgot-password/reset` | ✗ | Reset password using resetToken |
 
 #### POST `/user/create`
 ```json
@@ -90,6 +93,37 @@ Shared Infrastructure
   "fcmToken": "firebase_device_token"
 }
 ```
+#### POST `/user/forgot-password`
+```json
+{
+  "email": "tamjid@example.com"
+}
+```
+
+#### POST `/user/forgot-password/verify-otp`
+```json
+{
+  "email": "tamjid@example.com",
+  "otp": "123456"
+}
+```
+Response:
+```json
+{
+  "resetToken": "uuid-v4-reset-token"
+}
+```
+
+#### POST `/user/forgot-password/reset`
+```json
+{
+  "resetToken": "uuid-v4-reset-token",
+  "newPassword": "newSecurePassword"
+}
+```
+
+
+
 
 ---
 
