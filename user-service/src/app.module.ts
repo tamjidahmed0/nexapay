@@ -5,6 +5,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './redis/redis.module';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { MICROSERVICE } from './constants/constants';
+import { ProfileModule } from './profile/profile.module';
 
 
 @Module({
@@ -23,6 +24,7 @@ import { MICROSERVICE } from './constants/constants';
       },
     ]
   }),
+  ProfileModule,
   ]
 
 })

@@ -8,6 +8,7 @@ import { FxController } from './fx/fx.controller';
 import { RedisModule } from './redis/redis.module';
 import { SessionAuthGuard } from './guard/session.guard';
 import { ConfigModule } from '@nestjs/config';
+import { ProfileController } from './profile/profile.controller';
 
 
 @Module({
@@ -21,7 +22,7 @@ import { ConfigModule } from '@nestjs/config';
         name: MICROSERVICE.USER_SERVICE,
         transport: Transport.TCP,
         options: {
-          host: process.env.USER_SERVICE_HOST || '0.0.0.0',
+          host: process.env.USER_SERVICE_HOST || 'localhost',
           port: 3001
         }
       },
@@ -29,7 +30,7 @@ import { ConfigModule } from '@nestjs/config';
         name: MICROSERVICE.PAYMENT_SERVICE,
         transport: Transport.TCP,
         options: {
-          host: process.env.PAYMENT_SERVICE_HOST || '0.0.0.0',
+          host: process.env.PAYMENT_SERVICE_HOST || 'localhost',
           port: 3002
         }
       }
@@ -38,6 +39,6 @@ import { ConfigModule } from '@nestjs/config';
     RedisModule
   ],
   providers: [SessionAuthGuard],
-  controllers: [UserController, WalletController, TransactionController, FxController],
+  controllers: [UserController, WalletController, TransactionController, FxController, ProfileController],
 })
 export class AppModule { }
